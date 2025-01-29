@@ -10,7 +10,7 @@ if not OPENAI_API_KEY:
 
 app = Flask(__name__)
 
-@app.route('/sintesi', methods=['POST'])
+@app.route('/sintesi', methods=['GET', 'POST'])
 def sintetizza_sentenza():
     data = request.json
     codice_sentenza = data.get("codice_sentenza")
