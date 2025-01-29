@@ -1,6 +1,7 @@
 import os
 import requests
 from flask import Flask, request, jsonify
+from bs4 import BeautifulSoup
 
 # Prendi la chiave API da una variabile d'ambiente
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -12,11 +13,14 @@ app = Flask(__name__)
 
 @app.route('/sintesi', methods=['GET', 'POST'])
 def sintetizza_sentenza():
-    data = request.json
-    codice_sentenza = data.get("codice_sentenza")
+    if request.method == 'POST':
+        data = request.json
+        codice_sentenza = data.get("codice_sentenza")
+    else:
+        codice_sentenza = request.args.get("codice_sentenza")
 
-    if not codice_sentenza:
-        return jsonify({"errore": "Codice della sentenza mancante"}), 400
+    if not codice_sentenza or "/" in codice_sentenza:
+        return jsonify({"errore": "Codice della sentenza non valido o mancante"}), 400
 
     # Costruisci l'URL della sentenza su bger.li
     url_sentenza = f"https://bger.li/{codice_sentenza}"
@@ -27,15 +31,15 @@ def sintetizza_sentenza():
     except requests.exceptions.RequestException as e:
         return jsonify({"errore": f"Errore nel recupero della sentenza: {str(e)}"}), 500
 
-    # Estrarre il testo della sentenza dal sito (devi adattarlo se cambia il formato HTML)
-    from bs4 import BeautifulSoup
-    soup = BeautifulSoup(response.text, "html.parser")
-    contenuto_sentenza = soup.find("div", {"id": "content"})
-
-    if not contenuto_sentenza:
-        return jsonify({"errore": "Testo della sentenza non trovato"}), 404
-
-    testo_sentenza = contenuto_sentenza.get_text()
+    # Estrarre il testo della sentenza dal sito
+    try:
+        soup = BeautifulSoup(response.text, "html.parser")
+        contenuto_sentenza = soup.find("div", {"id": "content"})
+        if not contenuto_sentenza:
+            raise ValueError("Testo della sentenza non trovato nel contenuto HTML.")
+        testo_sentenza = contenuto_sentenza.get_text()
+    except Exception as e:
+        return jsonify({"errore": f"Errore durante il parsing HTML: {str(e)}"}), 500
 
     # Chiamata a OpenAI per la sintesi
     headers = {
@@ -45,14 +49,14 @@ def sintetizza_sentenza():
     payload = {
         "model": "gpt-4",
         "messages": [
-            {"role": "system", "content": "Sintetizza la sentenza nei seguenti 4 punti: \n"
-                                          "1. Riassunto della fattispecie \n"
-                                          "2. Articoli principali rilevanti (elenco numerico) \n"
-                                          "3. Considerazioni principali del tribunale (frasi chiave) \n"
+            {"role": "system", "content": "Sintetizza la sentenza nei seguenti 4 punti:\n"
+                                          "1. Riassunto della fattispecie\n"
+                                          "2. Articoli principali rilevanti (elenco numerico)\n"
+                                          "3. Considerazioni principali del tribunale (frasi chiave)\n"
                                           "4. Conclusioni finali"},
             {"role": "user", "content": testo_sentenza}
         ],
-        "temperature": 0.7
+        "temperature": 0.3
     }
 
     try:
@@ -66,4 +70,5 @@ def sintetizza_sentenza():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
 
