@@ -11,7 +11,6 @@ load_dotenv()
 
 # Recupera la chiave API
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
 if not OPENAI_API_KEY:
     raise ValueError("Errore: La chiave API di OpenAI non è stata trovata. Assicurati di impostarla nel file .env.")
 
@@ -39,18 +38,18 @@ def estrai_testo_sentenze(url):
     except Exception as e:
         return f"Errore nell'estrazione del testo della sentenza: {e}"
 
-# Funzione per sintetizzare il testo della sentenza
+# Funzione per sintetizzare il testo della sentenza e dividerlo in 4 punti
 def sintetizza_testo_sentenza(testo_sentenza):
     try:
         prompt = f"""
-        Sei un assistente giuridico esperto. Sintetizza il seguente testo di sentenza nei 4 punti indicati:
+        Sei un assistente giuridico esperto. Sintetizza il seguente testo di sentenza suddividendolo nei seguenti punti:
+        
+        1. **Riassunto della fattispecie**: Dettagli e contesto principale della sentenza.
+        2. **Articoli principali rilevanti**: Elenco degli articoli di legge utilizzati o menzionati nella sentenza.
+        3. **Considerazioni principali del tribunale**: Motivazioni centrali e interpretazioni giuridiche.
+        4. **Conclusioni**: Esito finale della sentenza e i suoi effetti.
 
-        1. **Riassunto della fattispecie**: Descrivi i fatti principali.
-        2. **Articoli principali rilevanti**: Elenca gli articoli di legge principali utilizzati.
-        3. **Considerazioni principali del tribunale**: Spiega le principali motivazioni e ragionamenti.
-        4. **Conclusioni**: Indica la decisione finale e le sue conseguenze.
-
-        Testo della sentenza:
+        Ecco il testo della sentenza:
         {testo_sentenza}
         """
 
@@ -63,24 +62,28 @@ def sintetizza_testo_sentenza(testo_sentenza):
             max_tokens=2000,
             temperature=0.3
         )
+        # Dividi la risposta nei 4 punti previsti
+        sintesi_completa = response["choices"][0]["message"]["content"].strip()
         
-        # Converte il testo in oggetto strutturato
-        sintesi_completa = response["choices"][0]["message"]["content"]
+        punti = sintesi_completa.split("\n\n")  # Divide ogni sezione della risposta
 
-        # Dividi la sintesi nei vari punti utilizzando i numeri come delimitatori
-        sezioni = sintesi_completa.split("\n\n")
+        # Assicurati che ci siano almeno 4 sezioni
         return {
-            "fattispecie": sezioni[0] if len(sezioni) > 0 else "Dati mancanti",
-            "articoli": sezioni[1] if len(sezioni) > 1 else "Dati mancanti",
-            "considerazioni": sezioni[2] if len(sezioni) > 2 else "Dati mancanti",
-            "conclusioni": sezioni[3] if len(sezioni) > 3 else "Dati mancanti"
+            "riassunto": punti[0] if len(punti) > 0 else "Informazione non disponibile",
+            "articoli": punti[1] if len(punti) > 1 else "Informazione non disponibile",
+            "considerazioni": punti[2] if len(punti) > 2 else "Informazione non disponibile",
+            "conclusioni": punti[3] if len(punti) > 3 else "Informazione non disponibile"
+        }
+    except Exception as e:
+        return {
+            "riassunto": f"Errore durante la sintesi: {e}",
+            "articoli": "Errore durante la sintesi.",
+            "considerazioni": "Errore durante la sintesi.",
+            "conclusioni": "Errore durante la sintesi."
         }
 
-    except Exception as e:
-        return f"Errore durante la sintesi della sentenza: {e}"
-
 # Route principale dell'API
-@app.route('/sintesi', methods=['GET', 'POST'])
+@app.route('/sintesi', methods=['GET'])
 def get_summary():
     codice_sentenza = request.args.get('codice')
     if not codice_sentenza:
@@ -93,11 +96,7 @@ def get_summary():
         return jsonify({"errore": testo_sentenza}), 404
 
     sintesi = sintetizza_testo_sentenza(testo_sentenza)
-    if isinstance(sintesi, dict):
-        return jsonify({"sintesi": sintesi})
-    else:
-        return jsonify({"errore": "Errore durante la sintesi della sentenza."}), 500
+    return jsonify(sintesi)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-
