@@ -1,5 +1,6 @@
 import os
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import openai
 import requests
 from bs4 import BeautifulSoup
@@ -17,7 +18,9 @@ if not OPENAI_API_KEY:
 # Imposta la chiave API di OpenAI
 openai.api_key = OPENAI_API_KEY
 
+# Crea l'app Flask e abilita il CORS
 app = Flask(__name__)
+CORS(app)  # Abilita CORS per tutte le rotte
 
 # Funzione per costruire l'URL per la ricerca della sentenza
 def costruisci_url_bgerli(codice_sentenza):
@@ -33,7 +36,7 @@ def estrai_testo_sentenze(url):
         if content:
             return content.get_text(separator="\n").strip()
         else:
-            raise ValueError("Testo della sentenza non trovato.")
+            return "Testo della sentenza non trovato."
     except Exception as e:
         return f"Errore nell'estrazione del testo della sentenza: {e}"
 
@@ -41,7 +44,17 @@ def estrai_testo_sentenze(url):
 def sintetizza_testo_sentenza(testo_sentenza):
     try:
         prompt = f"""
-        Sei un assistente giuridico esperto. Sintetizza il seguente testo di sentenza:
+        Sei un assistente giuridico esperto. Sintetizza il seguente testo della sentenza nei 4 punti chiave indicati:
+
+        1. **Riassunto della fattispecie**: Descrivi in modo dettagliato il contesto, i fatti principali e le circostanze specifiche della sentenza. Includi dettagli rilevanti come le parti coinvolte, la natura del conflitto e il contesto giuridico.
+
+        2. **Articoli principali rilevanti**: Elenca numericamente gli articoli di legge citati o utilizzati nella sentenza, specificando brevemente di cosa trattano (es. *Art. 305: Obblighi contrattuali*).
+
+        3. **Considerazioni principali del tribunale**: Riporta in maniera dettagliata le motivazioni centrali del tribunale, le interpretazioni giuridiche adottate e i ragionamenti principali che hanno guidato la decisione. Fai uso di elenchi numerati o puntati per chiarezza.
+
+        4. **Conclusioni**: Indica il risultato della sentenza in modo chiaro. Specifica gli effetti della decisione e chi ne è influenzato (es. risoluzione del contratto, obblighi risarcitori, ecc.).
+
+        Testo della sentenza:
         {testo_sentenza}
         """
 
@@ -55,14 +68,21 @@ def sintetizza_testo_sentenza(testo_sentenza):
             temperature=0.3
         )
         return response["choices"][0]["message"]["content"].strip()
-
     except Exception as e:
         return f"Errore durante la sintesi della sentenza: {e}"
 
-# Route principale dell'API
+# Route principale dell'API (accetta sia GET che POST)
 @app.route('/sintesi', methods=['GET', 'POST'])
 def get_summary():
-    codice_sentenza = request.args.get('codice')
+    # Se la richiesta è GET, prendi il parametro dall'URL
+    if request.method == 'GET':
+        codice_sentenza = request.args.get('codice')
+    
+    # Se la richiesta è POST, prendi il parametro dal corpo JSON
+    elif request.method == 'POST':
+        data = request.get_json()
+        codice_sentenza = data.get('codice')
+
     if not codice_sentenza:
         return jsonify({"errore": "Codice sentenza mancante"}), 400
 
