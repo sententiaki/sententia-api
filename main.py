@@ -5,6 +5,7 @@ import openai
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+import re  # Per gestire la conversione del codice sentenza
 
 # Carica le variabili d'ambiente dal file .env
 load_dotenv()
@@ -20,8 +21,19 @@ openai.api_key = OPENAI_API_KEY
 app = Flask(__name__)
 CORS(app)
 
-# Funzione per costruire l'URL per la ricerca della sentenza
+# Funzione per costruire l'URL per la ricerca della sentenza su bger.li
 def costruisci_url_bgerli(codice_sentenza):
+    # Rimuove spazi in eccesso
+    codice_sentenza = codice_sentenza.strip()
+
+    # Controlla se il formato è del tipo "105 II 16" e lo converte in "105-II-16"
+    match = re.match(r'^(\d{1,3})\s+([IVXLCDM]+)\s+(\d+)$', codice_sentenza)
+    if match:
+        codice_sentenza = f"{match.group(1)}-{match.group(2)}-{match.group(3)}"
+    else:
+        # Sostituisci eventuali "/" con "-" per formati tipo "4A_61/2024"
+        codice_sentenza = codice_sentenza.replace("/", "-")
+
     return f"https://bger.li/{codice_sentenza}"
 
 # Funzione per estrarre il testo della sentenza dal sito bger.li
