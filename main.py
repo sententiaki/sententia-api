@@ -5,18 +5,17 @@ import openai
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-import re  # Per gestire la conversione del codice sentenza
+import re
 
-# Carica le variabili d'ambiente dal file .env
 load_dotenv()
 
-# Recupera la chiave API di OpenAI e Google Custom Search
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID")
 
 if not OPENAI_API_KEY or not GOOGLE_API_KEY or not GOOGLE_CSE_ID:
     raise ValueError("Assicurati che le chiavi API siano correttamente impostate nel file .env.")
+
 
 # Imposta la chiave API di OpenAI
 openai.api_key = OPENAI_API_KEY
