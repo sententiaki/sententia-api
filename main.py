@@ -94,7 +94,7 @@ def sintetizza_testo_sentenza(testo_sentenza):
             "conclusioni": "Errore durante la sintesi."
         }
 
-# Route principale dell'API
+# Route per la sintesi delle sentenze
 @app.route('/sintesi', methods=['GET'])
 def get_summary():
     codice_sentenza = request.args.get('codice')
@@ -109,6 +109,27 @@ def get_summary():
 
     sintesi = sintetizza_testo_sentenza(testo_sentenza)
     return jsonify(sintesi)
+
+# 🔍 Nuovo endpoint per la ricerca intelligente delle sentenze
+@app.route('/cerca-sentenze', methods=['GET'])
+def cerca_sentenze():
+    query = request.args.get('query')
+    
+    if not query:
+        return jsonify({"errore": "Devi inserire delle parole chiave per la ricerca."}), 400
+    
+    # Simulazione di ricerca delle sentenze sul web (puoi personalizzare questa parte con il vero motore di ricerca)
+    url = f"https://bger.li/search?query={query}"  # URL fittizio, da personalizzare
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        # Simulazione di risultati (modifica per elaborare i veri risultati)
+        risultati = f"Risultati trovati per la query '{query}' (simulazione di risultati)"
+        
+        return jsonify({"risultati": risultati})
+    except Exception as e:
+        return jsonify({"errore": f"Errore durante la ricerca: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
