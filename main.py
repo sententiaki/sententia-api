@@ -10,10 +10,13 @@ import re  # Per gestire la conversione del codice sentenza
 # Carica le variabili d'ambiente dal file .env
 load_dotenv()
 
-# Recupera la chiave API
+# Recupera la chiave API di OpenAI e Google Custom Search
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise ValueError("Errore: La chiave API di OpenAI non è stata trovata. Assicurati di impostarla nel file .env.")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID")
+
+if not OPENAI_API_KEY or not GOOGLE_API_KEY or not GOOGLE_CSE_ID:
+    raise ValueError("Assicurati che le chiavi API siano correttamente impostate nel file .env.")
 
 # Imposta la chiave API di OpenAI
 openai.api_key = OPENAI_API_KEY
@@ -94,7 +97,35 @@ def sintetizza_testo_sentenza(testo_sentenza):
             "conclusioni": "Errore durante la sintesi."
         }
 
-# Route per la sintesi delle sentenze
+# Funzione per cercare le sentenze tramite Google Custom Search
+def cerca_sentenze_google(parole_chiave):
+    try:
+        url = f"https://www.googleapis.com/customsearch/v1?q={parole_chiave}+site:bger.ch&key={GOOGLE_API_KEY}&cx={GOOGLE_CSE_ID}"
+        response = requests.get(url)
+        response.raise_for_status()
+        risultati = response.json()
+
+        sentenze_trovate = []
+        for item in risultati.get('items', [])[:5]:  # Prende solo i primi 5 risultati
+            titolo = item.get('title', 'Titolo non disponibile')
+            link = item.get('link', '#')
+            descrizione = item.get('snippet', 'Descrizione non disponibile')
+
+            # Sintetizza brevemente ogni sentenza trovata
+            sintesi_breve = sintetizza_testo_sentenza(descrizione)
+
+            sentenze_trovate.append({
+                "titolo": titolo,
+                "link": link,
+                "riassunto": sintesi_breve["riassunto"]  # Sintesi breve del contenuto
+            })
+
+        return sentenze_trovate
+
+    except Exception as e:
+        return [{"errore": f"Errore durante la ricerca su Google: {e}"}]
+
+# Route per la sintesi della sentenza
 @app.route('/sintesi', methods=['GET'])
 def get_summary():
     codice_sentenza = request.args.get('codice')
@@ -110,26 +141,15 @@ def get_summary():
     sintesi = sintetizza_testo_sentenza(testo_sentenza)
     return jsonify(sintesi)
 
-# 🔍 Nuovo endpoint per la ricerca intelligente delle sentenze
-@app.route('/cerca-sentenze', methods=['GET'])
-def cerca_sentenze():
+# Route per la ricerca di sentenze tramite parole chiave
+@app.route('/ricerca_sentenze', methods=['GET'])
+def ricerca_sentenze():
     query = request.args.get('query')
-    
     if not query:
-        return jsonify({"errore": "Devi inserire delle parole chiave per la ricerca."}), 400
-    
-    # Simulazione di ricerca delle sentenze sul web (puoi personalizzare questa parte con il vero motore di ricerca)
-    url = f"https://bger.li/search?query={query}"  # URL fittizio, da personalizzare
-    try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        
-        # Simulazione di risultati (modifica per elaborare i veri risultati)
-        risultati = f"Risultati trovati per la query '{query}' (simulazione di risultati)"
-        
-        return jsonify({"risultati": risultati})
-    except Exception as e:
-        return jsonify({"errore": f"Errore durante la ricerca: {str(e)}"}), 500
+        return jsonify({"errore": "Parole chiave mancanti per la ricerca"}), 400
+
+    risultati = cerca_sentenze_google(query)
+    return jsonify(risultati)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
