@@ -1,14 +1,17 @@
 import os
+import re
+import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import openai
-import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-import re
+import openai
+from googletrans import Translator
 
+# Carica le variabili d'ambiente dal file .env
 load_dotenv()
 
+# Chiavi API
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID")
@@ -16,30 +19,21 @@ GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID")
 if not OPENAI_API_KEY or not GOOGLE_API_KEY or not GOOGLE_CSE_ID:
     raise ValueError("Assicurati che le chiavi API siano correttamente impostate nel file .env.")
 
-
 # Imposta la chiave API di OpenAI
 openai.api_key = OPENAI_API_KEY
 
 app = Flask(__name__)
 CORS(app)
 
-# Funzione per costruire l'URL per la ricerca della sentenza su bger.li
+translator = Translator()
+
+# Funzione per costruire l'URL su bger.li usando il codice sentenza
 def costruisci_url_bgerli(codice_sentenza):
-    # Rimuove spazi in eccesso
-    codice_sentenza = codice_sentenza.strip()
-
-    # Controlla se il formato è del tipo "105 II 16" e lo converte in "105-II-16"
-    match = re.match(r'^(\d{1,3})\s+([IVXLCDM]+)\s+(\d+)$', codice_sentenza)
-    if match:
-        codice_sentenza = f"{match.group(1)}-{match.group(2)}-{match.group(3)}"
-    else:
-        # Sostituisci eventuali "/" con "-" per formati tipo "4A_61/2024"
-        codice_sentenza = codice_sentenza.replace("/", "-")
-
+    codice_sentenza = codice_sentenza.strip().replace("/", "-").replace(" ", "-")
     return f"https://bger.li/{codice_sentenza}"
 
-# Funzione per estrarre il testo della sentenza dal sito bger.li
-def estrai_testo_sentenze(url):
+# Funzione per estrarre il contenuto della sentenza da bger.li
+def estrai_testo_sentenze_bgerli(url):
     try:
         response = requests.get(url, timeout=120)
         response.raise_for_status()
@@ -48,22 +42,20 @@ def estrai_testo_sentenze(url):
         if content:
             return content.get_text(separator="\n").strip()
         else:
-            raise ValueError("Testo della sentenza non trovato.")
+            return "Errore: Testo della sentenza non trovato."
     except Exception as e:
-        return f"Errore nell'estrazione del testo della sentenza: {e}"
+        return f"Errore nell'estrazione del testo: {e}"
 
-# Funzione per sintetizzare il testo della sentenza e dividerlo in 4 punti
-def sintetizza_testo_sentenza(testo_sentenza):
+# Funzione per sintetizzare una sentenza per il sistema di ricerca sentenze
+def sintetizza_testo_sentenza(testo_sentenza, codice):
     try:
         prompt = f"""
-        Sei un assistente giuridico esperto. Sintetizza il seguente testo di sentenza suddividendolo nei seguenti punti:
-        
-        1. **Riassunto della fattispecie**: Dettagli e contesto principale della sentenza.
-        2. **Articoli principali rilevanti**: Elenco degli articoli di legge utilizzati o menzionati nella sentenza.
-        3. **Considerazioni principali del tribunale**: Motivazioni centrali e interpretazioni giuridiche.
-        4. **Conclusioni**: Esito finale della sentenza e i suoi effetti.
+        Sei un assistente giuridico esperto. Sintetizza la seguente sentenza:
+        Titolo: {codice}
+        1. **Riassunto della sentenza:** Fornisci un riassunto completo in circa 10 righe che copra il tema principale della sentenza.
+        2. **Articoli rilevanti:** Elenca gli articoli giuridici rilevanti discussi nella sentenza.
 
-        Ecco il testo della sentenza:
+        Testo della sentenza:
         {testo_sentenza}
         """
 
@@ -76,71 +68,88 @@ def sintetizza_testo_sentenza(testo_sentenza):
             max_tokens=2000,
             temperature=0.3
         )
-        # Dividi la risposta nei 4 punti previsti
-        sintesi_completa = response["choices"][0]["message"]["content"].strip()
-        
-        punti = sintesi_completa.split("\n\n")  # Divide ogni sezione della risposta
-
-        # Assicurati che ci siano almeno 4 sezioni
-        return {
-            "riassunto": punti[0] if len(punti) > 0 else "Informazione non disponibile",
-            "articoli": punti[1] if len(punti) > 1 else "Informazione non disponibile",
-            "considerazioni": punti[2] if len(punti) > 2 else "Informazione non disponibile",
-            "conclusioni": punti[3] if len(punti) > 3 else "Informazione non disponibile"
-        }
+        return response["choices"][0]["message"]["content"].strip()
     except Exception as e:
-        return {
-            "riassunto": f"Errore durante la sintesi: {e}",
-            "articoli": "Errore durante la sintesi.",
-            "considerazioni": "Errore durante la sintesi.",
-            "conclusioni": "Errore durante la sintesi."
-        }
+        return f"Errore durante la sintesi: {e}"
 
-# Funzione per cercare le sentenze tramite Google Custom Search
-def cerca_sentenze_google(parole_chiave):
+# Funzione per sintetizzare una sentenza in 4 punti per il sistema Legal Summarization
+def sintetizza_testo_sentenza_4_punti(testo_sentenza):
     try:
-        url = f"https://www.googleapis.com/customsearch/v1?q={parole_chiave}+site:bger.ch&key={GOOGLE_API_KEY}&cx={GOOGLE_CSE_ID}"
-        response = requests.get(url)
-        response.raise_for_status()
-        risultati = response.json()
+        prompt = f"""
+        Sei un assistente giuridico esperto. Sintetizza il seguente testo di sentenza suddividendolo nei seguenti punti:
+        
+        1. **Riassunto della fattispecie:** Dettagli e contesto principale della sentenza.
+        2. **Articoli principali rilevanti:** Elenco degli articoli di legge utilizzati o menzionati nella sentenza.
+        3. **Considerazioni principali del tribunale:** Motivazioni centrali e interpretazioni giuridiche.
+        4. **Conclusioni:** Esito finale della sentenza e i suoi effetti.
 
-        sentenze_trovate = []
-        for item in risultati.get('items', [])[:5]:  # Prende solo i primi 5 risultati
-            titolo = item.get('title', 'Titolo non disponibile')
-            link = item.get('link', '#')
-            descrizione = item.get('snippet', 'Descrizione non disponibile')
+        Testo della sentenza:
+        {testo_sentenza}
+        """
 
-            # Sintetizza brevemente ogni sentenza trovata
-            sintesi_breve = sintetizza_testo_sentenza(descrizione)
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Sei un assistente giuridico esperto."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=2000,
+            temperature=0.3
+        )
 
-            sentenze_trovate.append({
-                "titolo": titolo,
-                "link": link,
-                "riassunto": sintesi_breve["riassunto"]  # Sintesi breve del contenuto
-            })
-
-        return sentenze_trovate
+        # Ritorna il risultato diviso nei 4 punti
+        return response["choices"][0]["message"]["content"].strip()
 
     except Exception as e:
-        return [{"errore": f"Errore durante la ricerca su Google: {e}"}]
+        return f"Errore durante la sintesi della sentenza: {e}"
 
-# Route per la sintesi della sentenza
-@app.route('/sintesi', methods=['GET'])
-def get_summary():
-    codice_sentenza = request.args.get('codice')
-    if not codice_sentenza:
-        return jsonify({"errore": "Codice sentenza mancante"}), 400
+# Funzione per estrarre il codice sentenza dal link di Google
+def estrai_codice_sentenza(link):
+    match = re.search(r'(\d+[A-Za-z]_\d+/\d+|\d{1,3}\s+[IVXLCDM]+\s+\d+)', link)
+    return match.group(1) if match else "Codice non trovato"
 
-    url = costruisci_url_bgerli(codice_sentenza)
-    testo_sentenza = estrai_testo_sentenze(url)
+# Funzione per cercare le sentenze con Google Custom Search
+def cerca_sentenze_google(parole_chiave):
+    risultati_finali = []
+    try:
+        # Traduci la query in francese e tedesco
+        query_it = parole_chiave
+        query_fr = translator.translate(parole_chiave, src='it', dest='fr').text
+        query_de = translator.translate(parole_chiave, src='it', dest='de').text
 
-    if not testo_sentenza or "Errore" in testo_sentenza:
-        return jsonify({"errore": testo_sentenza}), 404
+        # Unisci le query
+        queries = [query_it, query_fr, query_de]
 
-    sintesi = sintetizza_testo_sentenza(testo_sentenza)
-    return jsonify(sintesi)
+        # Cerca in tutte le lingue
+        for query in queries:
+            url = f"https://www.googleapis.com/customsearch/v1?q={query}+site:bger.ch&key={GOOGLE_API_KEY}&cx={GOOGLE_CSE_ID}"
+            response = requests.get(url)
+            response.raise_for_status()
+            risultati_google = response.json().get('items', [])
 
-# Route per la ricerca di sentenze tramite parole chiave
+            for item in risultati_google[:5]:
+                link = item.get('link')
+                titolo = item.get('title', 'Titolo non disponibile')
+                codice_sentenza = estrai_codice_sentenza(titolo)
+
+                if codice_sentenza != "Codice non trovato":
+                    url_bgerli = costruisci_url_bgerli(codice_sentenza)
+                    testo_sentenze = estrai_testo_sentenze_bgerli(url_bgerli)
+
+                    if "Errore" not in testo_sentenze:
+                        sintesi = sintetizza_testo_sentenza(testo_sentenze, codice_sentenza)
+                        risultati_finali.append({
+                            "titolo": codice_sentenza,
+                            "riassunto": sintesi,
+                            "link": url_bgerli
+                        })
+
+    except Exception as e:
+        return [{"errore": f"Errore durante la ricerca: {e}"}]
+
+    return risultati_finali if risultati_finali else [{"errore": "Nessun risultato trovato"}]
+
+# Route per la ricerca delle sentenze
 @app.route('/ricerca_sentenze', methods=['GET'])
 def ricerca_sentenze():
     query = request.args.get('query')
@@ -150,5 +159,25 @@ def ricerca_sentenze():
     risultati = cerca_sentenze_google(query)
     return jsonify(risultati)
 
+# Route per la sintesi delle sentenze singole (Legal Summarization)
+@app.route('/sintesi', methods=['GET'])
+def get_summary():
+    codice_sentenza = request.args.get('codice')
+    if not codice_sentenza:
+        return jsonify({"errore": "Codice sentenza mancante"}), 400
+
+    url = costruisci_url_bgerli(codice_sentenza)
+    testo_sentenza = estrai_testo_sentenze_bgerli(url)
+
+    if "Errore" in testo_sentenza:
+        return jsonify({"errore": testo_sentenza}), 404
+
+    sintesi_4_punti = sintetizza_testo_sentenza_4_punti(testo_sentenza)
+    return jsonify({"sintesi": sintesi_4_punti})
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
+
+
+
