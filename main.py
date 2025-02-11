@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from deep_translator import GoogleTranslator
 import re
 from dotenv import load_dotenv
+import tiktoken  # Assicurati di averlo installato
 
 # Carica le variabili d'ambiente dal file .env
 load_dotenv()
@@ -47,7 +48,6 @@ def cerca_sentenze_google(parole_chiave):
         for item in risultati[:5]:  # Limitiamo a 5 risultati complessivi
             titolo = item.get('title', '')
             link = item.get('link', '')
-            
             # Estrarre il codice sentenza dal titolo (es: 4A_61/2024)
             codice_match = re.search(r'(\d+[A-Z]_\d+/\d+|\d+\s+[IVXLCDM]+\s+\d+)', titolo)
             if codice_match:
@@ -75,57 +75,92 @@ def estrai_testo_sentenze(url):
     except Exception as e:
         return f"Errore nell'estrazione del testo della sentenza: {e}"
 
+# --- Funzioni per il chunking e riassunto iterativo ---
+def split_text_into_chunks(text, max_tokens=15000, model="gpt-3.5-turbo"):
+    encoding = tiktoken.encoding_for_model(model)
+    tokens = encoding.encode(text)
+    if len(tokens) <= max_tokens:
+        return [text]
+    chunks = []
+    start = 0
+    while start < len(tokens):
+        end = start + max_tokens
+        chunk_tokens = tokens[start:end]
+        chunk_text = encoding.decode(chunk_tokens)
+        chunks.append(chunk_text)
+        start = end
+    return chunks
+
+def summarize_with_chunking(text, summary_function, max_tokens=15000):
+    chunks = split_text_into_chunks(text, max_tokens)
+    if len(chunks) == 1:
+        return summary_function(text)
+    else:
+        # Riassumi ogni chunk individualmente
+        chunk_summaries = []
+        for chunk in chunks:
+            chunk_summary = summary_function(chunk)
+            chunk_summaries.append(chunk_summary)
+        # Combina i riassunti e sintetizza il risultato finale
+        combined_summary = "\n".join(chunk_summaries)
+        final_summary = summary_function(combined_summary)
+        return final_summary
+
 # Funzione per sintetizzare ogni sentenza (10 righe per la ricerca)
 def sintetizza_sentenza_10_righe(testo_sentenza):
-    prompt = f"""
-    Sei un assistente giuridico esperto. Sintetizza il seguente testo di sentenza nei seguenti punti:
-    
-    - **Riassunto della sentenza**: Scrivi un riassunto completo del tema principale trattato in circa 10 righe.
-    - **Articoli principali rilevanti**: Elenca gli articoli di legge citati o discussi nella sentenza.
+    def call_api(text):
+        prompt = f"""
+Sei un assistente giuridico esperto. Sintetizza il seguente testo di sentenza nei seguenti punti:
 
-    Ecco il testo della sentenza:
-    {testo_sentenza}
-    """
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "Sei un assistente giuridico esperto."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=1500,
-            temperature=0.3
-        )
-        return response["choices"][0]["message"]["content"].strip()
-    except Exception as e:
-        return f"Errore durante la sintesi della sentenza: {e}"
+- **Riassunto della sentenza**: Scrivi un riassunto completo del tema principale trattato in circa 10 righe.
+- **Articoli principali rilevanti**: Elenca gli articoli di legge citati o discussi nella sentenza.
+
+Ecco il testo della sentenza:
+{text}
+        """
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "Sei un assistente giuridico esperto."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=1500,
+                temperature=0.3
+            )
+            return response["choices"][0]["message"]["content"].strip()
+        except Exception as e:
+            return f"Errore durante la sintesi della sentenza: {e}"
+    return summarize_with_chunking(testo_sentenza, call_api)
 
 # Funzione per sintetizzare la sentenza in 4 punti (legal summarization)
 def sintetizza_testo_sentenza_4_punti(testo_sentenza):
-    prompt = f"""
-    Sei un assistente giuridico esperto. Sintetizza il seguente testo di sentenza nei seguenti 4 punti:
-    
-    1. **Riassunto della fattispecie**: Dettagli e contesto principale della sentenza.
-    2. **Articoli principali rilevanti**: Elenco degli articoli giuridici utilizzati o menzionati nella sentenza.
-    3. **Considerazioni principali del tribunale**: Motivazioni centrali e interpretazioni giuridiche.
-    4. **Conclusioni**: Esito finale della sentenza e i suoi effetti.
+    def call_api(text):
+        prompt = f"""
+Sei un assistente giuridico esperto. Sintetizza il seguente testo di sentenza nei seguenti 4 punti:
 
-    Ecco il testo della sentenza:
-    {testo_sentenza}
-    """
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "Sei un assistente giuridico esperto."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=2000,
-            temperature=0.3
-        )
-        return response["choices"][0]["message"]["content"].strip()
-    except Exception as e:
-        return f"Errore durante la sintesi della sentenza: {e}"
+1. **Riassunto della fattispecie**: Dettagli e contesto principale della sentenza.
+2. **Articoli principali rilevanti**: Elenco degli articoli giuridici utilizzati o menzionati nella sentenza.
+3. **Considerazioni principali del tribunale**: Motivazioni centrali e interpretazioni giuridiche.
+4. **Conclusioni**: Esito finale della sentenza e i suoi effetti.
+
+Ecco il testo della sentenza:
+{text}
+        """
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "Sei un assistente giuridico esperto."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=1500,
+                temperature=0.3
+            )
+            return response["choices"][0]["message"]["content"].strip()
+        except Exception as e:
+            return f"Errore durante la sintesi della sentenza: {e}"
+    return summarize_with_chunking(testo_sentenza, call_api)
 
 # Route per la ricerca delle sentenze e la loro sintetizzazione (10 righe)
 @app.route('/ricerca_sentenze', methods=['GET'])
@@ -134,11 +169,11 @@ def ricerca_sentenze():
     if not query:
         return jsonify({"errore": "Parole chiave mancanti per la ricerca"}), 400
 
-    # 1. Cerca le sentenze con Google
+    # Cerca le sentenze con Google
     sentenze_trovate = cerca_sentenze_google(query)
     risultati_sintetizzati = []
 
-    # 2. Per ogni sentenza trovata, accedi a bger.li e sintetizza il testo in 10 righe
+    # Per ogni sentenza trovata, accedi a bger.li e sintetizza il testo in 10 righe
     for sentenza in sentenze_trovate:
         codice = sentenza["codice"]
         url_bgerli = costruisci_url_bgerli(codice)
@@ -175,5 +210,6 @@ def get_summary():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
 
 
