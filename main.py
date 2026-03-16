@@ -1,256 +1,293 @@
 import os
+import re
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import openai
 import requests
 from bs4 import BeautifulSoup
 from deep_translator import GoogleTranslator
-import re
-from dotenv import load_dotenv
+from openai import OpenAI
 import tiktoken
+from dotenv import load_dotenv
 
-# Carica le variabili d'ambiente dal file .env
 load_dotenv()
 
-# Recupera le chiavi API
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID")
+GOOGLE_CSE_ID  = os.getenv("GOOGLE_CSE_ID")
 
 if not (OPENAI_API_KEY and GOOGLE_API_KEY and GOOGLE_CSE_ID):
-    raise ValueError("Assicurati che le chiavi API siano correttamente impostate nel file .env.")
+    raise ValueError("Chiavi API mancanti nel file .env.")
 
-openai.api_key = OPENAI_API_KEY
+client = OpenAI(api_key=OPENAI_API_KEY)
+MODEL  = "gpt-4o-mini"
 
 app = Flask(__name__)
 CORS(app)
 
+
+# ─── Utilità ────────────────────────────────────────────────────────────────
+
 def traduci_parole_chiave(parole_chiave):
-    traduzioni = {
+    return {
         "it": parole_chiave,
-        "de": GoogleTranslator(source='it', target='de').translate(parole_chiave),
-        "fr": GoogleTranslator(source='it', target='fr').translate(parole_chiave)
+        "de": GoogleTranslator(source="it", target="de").translate(parole_chiave),
+        "fr": GoogleTranslator(source="it", target="fr").translate(parole_chiave),
     }
-    return traduzioni
+
 
 def cerca_sentenze_google(parole_chiave):
     risultati_finali = []
     traduzioni = traduci_parole_chiave(parole_chiave)
     for lang, query in traduzioni.items():
-        url = f"https://www.googleapis.com/customsearch/v1?q={query}+site:bger.ch&key={GOOGLE_API_KEY}&cx={GOOGLE_CSE_ID}"
-        response = requests.get(url)
-        response.raise_for_status()
-        risultati = response.json().get('items', [])
-        for item in risultati[:5]:
-            titolo = item.get('title', '')
-            link = item.get('link', '')
-            codice_match = re.search(r'(\d+[A-Z]_\d+/\d+|\d+\s+[IVXLCDM]+\s+\d+)', titolo)
-            if codice_match:
-                codice_sentenza = codice_match.group(1)
-                risultati_finali.append({"codice": codice_sentenza, "link": link})
+        url = (
+            f"https://www.googleapis.com/customsearch/v1"
+            f"?q={query}+site:bger.ch"
+            f"&key={GOOGLE_API_KEY}&cx={GOOGLE_CSE_ID}"
+        )
+        try:
+            resp = requests.get(url, timeout=15)
+            resp.raise_for_status()
+        except Exception:
+            continue
+        for item in resp.json().get("items", [])[:5]:
+            titolo = item.get("title", "")
+            link   = item.get("link", "")
+            m = re.search(r"(\d+[A-Z]_\d+/\d+|\d+\s+[IVXLCDM]+\s+\d+)", titolo)
+            if m:
+                risultati_finali.append({"codice": m.group(1), "link": link})
     return risultati_finali[:5]
 
-def costruisci_url_bgerli(codice_sentenza):
-    codice_sentenza = codice_sentenza.strip().replace(" ", "-").replace("/", "-")
-    return f"https://bger.li/{codice_sentenza}"
 
-def estrai_testo_sentenze(url):
+def costruisci_url_bgerli(codice):
+    codice = codice.strip().replace(" ", "-").replace("/", "-")
+    return f"https://bger.li/{codice}"
+
+
+def estrai_testo_sentenza(url):
     try:
-        response = requests.get(url, timeout=120)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")
+        resp = requests.get(url, timeout=120)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
         content = soup.find("div", id="content")
-        if content:
-            return content.get_text(separator="\n").strip()
-        else:
-            return "Testo della sentenza non trovato."
+        return content.get_text(separator="\n").strip() if content else ""
     except Exception as e:
-        return f"Errore nell'estrazione del testo della sentenza: {e}"
+        return f"ERRORE:{e}"
 
-# Funzioni per il chunking e il riassunto iterativo
-def split_text_into_chunks(text, max_tokens=15000, model="gpt-3.5-turbo"):
-    encoding = tiktoken.encoding_for_model(model)
-    tokens = encoding.encode(text)
+
+def split_in_chunks(text, max_tokens=12000):
+    enc    = tiktoken.encoding_for_model("gpt-4o")
+    tokens = enc.encode(text)
     if len(tokens) <= max_tokens:
         return [text]
     chunks = []
-    start = 0
-    while start < len(tokens):
-        end = start + max_tokens
-        chunk_tokens = tokens[start:end]
-        chunk_text = encoding.decode(chunk_tokens)
-        chunks.append(chunk_text)
-        start = end
+    for i in range(0, len(tokens), max_tokens):
+        chunks.append(enc.decode(tokens[i : i + max_tokens]))
     return chunks
 
-def summarize_with_chunking(text, summary_function, max_tokens=15000, model="gpt-3.5-turbo"):
-    chunks = split_text_into_chunks(text, max_tokens, model)
+
+def chiama_openai(system: str, user: str, max_tokens: int = 1200) -> str:
+    resp = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user",   "content": user},
+        ],
+        max_tokens=max_tokens,
+        temperature=0.2,
+    )
+    return resp.choices[0].message.content.strip()
+
+
+def riassumi_con_chunking(testo: str, fn_call) -> str:
+    chunks = split_in_chunks(testo)
     if len(chunks) == 1:
-        return summary_function(text)
-    else:
-        chunk_summaries = []
-        for chunk in chunks:
-            summary_chunk = summary_function(chunk)
-            chunk_summaries.append(summary_chunk)
-        combined_summary = "\n".join(chunk_summaries)
-        final_summary = summary_function(combined_summary)
-        return final_summary
+        return fn_call(testo)
+    parziali = [fn_call(c) for c in chunks]
+    return fn_call("\n\n".join(parziali))
 
-# Funzione per sintetizzare ogni sentenza (modalità search, ~10 righe) in base alla lingua
-def sintetizza_sentenza_10_righe(testo_sentenza, lang="it"):
-    def call_api(text):
-        if lang == "it":
-            prompt = f"""
-Sei un assistente giuridico altamente specializzato. Analizza il seguente testo di sentenza e fornisci una sintesi estremamente precisa suddivisa in due sezioni:
-1. Riassunto della sentenza: Riassumi in circa 10 righe il tema principale, evidenziando i fatti cruciali e le questioni legali chiave.
-2. Articoli principali rilevanti: Elenca, in una lista puntata, i principali riferimenti normativi (codici e articoli) citati o discussi.
-Ecco il testo della sentenza:
-{text}
-            """
-        elif lang == "de":
-            prompt = f"""
-Du bist ein hochqualifizierter juristischer Assistent. Analysiere den folgenden Urteilstext und erstelle eine äußerst präzise Zusammenfassung, die in zwei Abschnitte unterteilt ist:
-1. Urteilzusammenfassung: Fasse in etwa 10 Zeilen das Hauptthema zusammen, indem du die entscheidenden Fakten und wichtigsten rechtlichen Fragen hervorhebst.
-2. Relevante Hauptartikel: Liste in Stichpunkten die wichtigsten gesetzlichen Verweise (Codes und Artikel) auf, die im Urteil zitiert oder diskutiert werden.
-Hier ist der Urteilstext:
-{text}
-            """
-        elif lang == "fr":
-            prompt = f"""
-Vous êtes un assistant juridique hautement spécialisé. Analysez le texte de la décision ci-dessous et fournissez un résumé extrêmement précis, divisé en deux sections :
-1. Résumé de la décision : Résumez en environ 10 lignes le thème principal en mettant en évidence les faits cruciaux et les questions juridiques clés.
-2. Articles principaux pertinents : Énumérez, sous forme de liste à puces, les principales références juridiques (codes et articles) citées ou discutées.
-Voici le texte de la décision :
-{text}
-            """
-        else:
-            prompt = f"""
-Sei un assistente giuridico altamente specializzato. Analizza il seguente testo di sentenza e fornisci una sintesi estremamente precisa suddivisa in due sezioni:
-1. Riassunto della sentenza: Riassumi in circa 10 righe il tema principale, evidenziando i fatti cruciali e le questioni legali chiave.
-2. Articoli principali rilevanti: Elenca, in una lista puntata, i principali riferimenti normativi (codici e articoli) citati o discussi.
-Ecco il testo della sentenza:
-{text}
-            """
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "Sei un assistente giuridico altamente specializzato."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=1500,
-                temperature=0.3
-            )
-            return response["choices"][0]["message"]["content"].strip()
-        except Exception as e:
-            return f"Errore durante la sintesi della sentenza: {e}"
-    return summarize_with_chunking(testo_sentenza, call_api)
 
-# Funzione per sintetizzare la sentenza in 4 punti (legal summarization) in base alla lingua
-def sintetizza_testo_sentenza_4_punti(testo_sentenza, lang="it"):
-    def call_api(text):
-        if lang == "it":
-            prompt = f"""
-Sei un assistente giuridico esperto. Analizza attentamente il seguente testo di sentenza e fornisci una sintesi strutturata in quattro parti fondamentali, utilizzando un linguaggio giuridico. La tua risposta dovrà essere suddivisa come segue:
+# ─── Smart Search: sintesi compatta (~10 righe) ──────────────────────────────
 
-1. Riassunto della fattispecie: Fornisci una descrizione chiara e sintetica dei fatti rilevanti e delle questioni legali principali alla base della sentenza.
-2. Articoli principali rilevanti: Elenca i principali articoli che sono stati citati o applicati, senza commenti aggiuntivi.
-3. Considerazioni principali del tribunale: Riassumi le motivazioni essenziali e il ragionamento giuridico adottato dalla corte, evidenziando gli argomenti decisionali critici.
-4. Conclusioni: Indica in modo sintetico l'esito finale della sentenza e le sue implicazioni giuridiche.
+SYSTEM_SEARCH = {
+    "it": (
+        "Sei un giurista svizzero esperto in diritto federale. "
+        "Produci sintesi concise, precise e rigorosamente strutturate di sentenze del Tribunale federale."
+    ),
+    "de": (
+        "Du bist ein erfahrener Schweizer Jurist im Bundesrecht. "
+        "Erstelle präzise, strukturierte Zusammenfassungen von Bundesgerichtsurteilen."
+    ),
+    "fr": (
+        "Vous êtes un juriste suisse expert en droit fédéral. "
+        "Produisez des synthèses concises et rigoureusement structurées des arrêts du Tribunal fédéral."
+    ),
+}
 
-Ecco il testo della sentenza:
-{text}
-            """
-        elif lang == "de":
-            prompt = f"""
-Du bist ein erfahrener juristischer Assistent. Analysiere den folgenden Urteilstext sorgfältig und erstelle eine strukturierte Zusammenfassung in vier wesentlichen Abschnitten, unter Verwendung einer juristischen Sprache. Deine Antwort sollte wie folgt gegliedert sein:
+PROMPT_SEARCH = {
+    "it": (
+        "Analizza la seguente sentenza del Tribunale federale svizzero e fornisci una sintesi strutturata:\n\n"
+        "**Questione giuridica**: (1-2 frasi sulla questione centrale)\n"
+        "**Fatti rilevanti**: (3-4 frasi sui fatti determinanti)\n"
+        "**Decisione**: (2-3 frasi sull'esito e sulla motivazione principale)\n"
+        "**Articoli applicati**: (lista puntata con i riferimenti normativi citati)\n\n"
+        "Usa linguaggio giuridico preciso. Sii diretto ed essenziale.\n\n"
+        "Testo della sentenza:\n{testo}"
+    ),
+    "de": (
+        "Analysiere das folgende Urteil des Schweizer Bundesgerichts und erstelle eine strukturierte Zusammenfassung:\n\n"
+        "**Rechtsfrage**: (1-2 Sätze zur zentralen Frage)\n"
+        "**Relevanter Sachverhalt**: (3-4 Sätze zu den massgebenden Fakten)\n"
+        "**Entscheid**: (2-3 Sätze zum Ergebnis und zur Hauptbegründung)\n"
+        "**Angewendete Artikel**: (Stichpunkte mit den zitierten Normen)\n\n"
+        "Verwende präzise juristische Sprache.\n\n"
+        "Urteilstext:\n{testo}"
+    ),
+    "fr": (
+        "Analysez l'arrêt du Tribunal fédéral suisse ci-dessous et fournissez une synthèse structurée:\n\n"
+        "**Question juridique**: (1-2 phrases sur la question centrale)\n"
+        "**Faits pertinents**: (3-4 phrases sur les faits déterminants)\n"
+        "**Décision**: (2-3 phrases sur le résultat et la motivation principale)\n"
+        "**Articles appliqués**: (liste à puces des références normatives citées)\n\n"
+        "Utilisez un langage juridique précis.\n\n"
+        "Texte de l'arrêt:\n{testo}"
+    ),
+}
 
-1. Sachverhalt Zusammenfassung: Gib eine klare und prägnante Beschreibung der relevanten Fakten und der wesentlichen rechtlichen Fragen, die dem Urteil zugrunde liegen.
-2. Relevante Hauptartikel: Liste die wichtigsten gsetzliche artikeln (z.B Art. 146 Stgb) auf, die zitiert oder angewendet wurden, ohne zusätzliche Kommentare.
-3. Erwägungen des Gerichts: Fasse die zentralen Motive und die juristische Argumentation des Gerichts zusammen und hebe die kritischen Entscheidungsargumente hervor.
-4. Schlussfolgerungen: Gib eine kurze Zusammenfassung des endgültigen Urteils und seiner rechtlichen Implikationen.
 
-Hier ist der Urteilstext:
-{text}
-            """
-        elif lang == "fr":
-            prompt = f"""
-Vous êtes un assistant juridique extrêmement expérimenté. Analysez le texte de la décision ci-dessous et fournissez un résumé structuré en quatre parties, en utilisant un langage formel et technique :
-1. Résumé des faits: Décrivez clairement les faits essentiels et les questions juridiques qui ont conduit à la décision.
-2. Articles principaux pertinents: Énumérez, sous forme de liste à puces, les principales références juridiques (codes et articles) citées ou appliquées.
-3. Principales considérations du tribunal: Résumez les motifs clés et le raisonnement juridique.
-4. Conclusions: Indiquez brièvement le résultat final de la décision et ses implications juridiques.
-Voici le texte de la décision :
-{text}
-            """
-        else:
-            prompt = f"""
-Sei un assistente giuridico estremamente esperto. Analizza il seguente testo di sentenza e fornisci una sintesi strutturata in quattro parti, usando un linguaggio formale e tecnico:
-1. Riassunto della fattispecie: Descrivi in modo chiaro i fatti essenziali e le questioni legali che hanno portato alla decisione.
-2. Articoli principali rilevanti: Elenca in elenco puntato i principali riferimenti normativi (codici e articoli) citati o applicati.
-3. Considerazioni principali del tribunale: Riassumi le motivazioni chiave e il ragionamento giuridico.
-4. Conclusioni: Indica sinteticamente l'esito finale della sentenza e le sue implicazioni.
-Ecco il testo della sentenza:
-{text}
-            """
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "Sei un assistente giuridico estremamente esperto."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=1500,
-                temperature=0.3
-            )
-            return response["choices"][0]["message"]["content"].strip()
-        except Exception as e:
-            return f"Errore durante la sintesi della sentenza: {e}"
-    return summarize_with_chunking(testo_sentenza, call_api)
+def sintetizza_sentenza_10_righe(testo: str, lang: str = "it") -> str:
+    l = lang if lang in PROMPT_SEARCH else "it"
 
-# Endpoint per la ricerca delle sentenze (modalità search) – supporta il parametro 'lang'
-@app.route('/ricerca_sentenze', methods=['GET'])
+    def call(t):
+        return chiama_openai(
+            system=SYSTEM_SEARCH[l],
+            user=PROMPT_SEARCH[l].format(testo=t),
+            max_tokens=800,
+        )
+
+    return riassumi_con_chunking(testo, call)
+
+
+# ─── Legal Summarization: analisi completa (4 punti) ────────────────────────
+
+SYSTEM_SUMM = {
+    "it": (
+        "Sei un avvocato svizzero con profonda competenza in diritto federale. "
+        "Produci analisi giuridiche professionali, strutturate e complete di sentenze del Tribunale federale. "
+        "Il tuo linguaggio è tecnico, preciso e adatto a professionisti del diritto."
+    ),
+    "de": (
+        "Du bist ein Schweizer Rechtsanwalt mit fundierter Expertise im Bundesrecht. "
+        "Du erstellst professionelle, strukturierte und vollständige rechtliche Analysen von Bundesgerichtsurteilen. "
+        "Deine Sprache ist technisch, präzise und für Rechtsfachleute geeignet."
+    ),
+    "fr": (
+        "Vous êtes un avocat suisse avec une profonde expertise en droit fédéral. "
+        "Vous produisez des analyses juridiques professionnelles, structurées et complètes des arrêts du Tribunal fédéral. "
+        "Votre langage est technique, précis et adapté aux professionnels du droit."
+    ),
+}
+
+PROMPT_SUMM = {
+    "it": (
+        "Analizza in modo completo e professionale la seguente sentenza del Tribunale federale svizzero. "
+        "Struttura la tua analisi esattamente come segue:\n\n"
+        "**1. Fattispecie**\n"
+        "Descrivi i fatti rilevanti, le parti coinvolte, il procedimento seguito e le questioni giuridiche sottoposte al tribunale.\n\n"
+        "**2. Articoli principali applicati**\n"
+        "Elenca in modo puntuale tutti gli articoli di legge citati o applicati (indicando codice e numero, es. art. 41 CO, art. 146 CP).\n\n"
+        "**3. Considerazioni del Tribunale**\n"
+        "Esponi il ragionamento giuridico adottato dalla corte: interpretazione normativa, bilanciamento degli interessi, "
+        "giurisprudenza richiamata e argomenti decisivi.\n\n"
+        "**4. Dispositivo e implicazioni**\n"
+        "Indica l'esito del giudizio (accoglimento/rigetto/rinvio), il dispositivo, le spese processuali e le implicazioni "
+        "giuridiche rilevanti per la prassi.\n\n"
+        "Testo della sentenza:\n{testo}"
+    ),
+    "de": (
+        "Analysiere das folgende Urteil des Schweizer Bundesgerichts vollständig und professionell. "
+        "Strukturiere deine Analyse genau wie folgt:\n\n"
+        "**1. Sachverhalt**\n"
+        "Beschreibe die relevanten Fakten, die beteiligten Parteien, das Verfahren und die dem Gericht vorgelegten Rechtsfragen.\n\n"
+        "**2. Massgebende Rechtsartikel**\n"
+        "Liste alle zitierten oder angewendeten Gesetzesartikel auf (mit Angabe des Gesetzes und Nummer, z.B. Art. 41 OR).\n\n"
+        "**3. Erwägungen des Gerichts**\n"
+        "Stelle die rechtliche Argumentation des Gerichts dar: Normeninterpretation, Interessenabwägung, "
+        "herangezogene Rechtsprechung und entscheidende Argumente.\n\n"
+        "**4. Dispositiv und Implikationen**\n"
+        "Gib das Urteilsergebnis an (Gutheissung/Abweisung/Rückweisung), das Dispositiv, die Prozesskosten und "
+        "die relevanten rechtlichen Implikationen für die Praxis.\n\n"
+        "Urteilstext:\n{testo}"
+    ),
+    "fr": (
+        "Analysez de manière complète et professionnelle l'arrêt du Tribunal fédéral suisse ci-dessous. "
+        "Structurez votre analyse exactement comme suit:\n\n"
+        "**1. Faits et procédure**\n"
+        "Décrivez les faits pertinents, les parties impliquées, la procédure suivie et les questions juridiques soumises.\n\n"
+        "**2. Articles principaux appliqués**\n"
+        "Listez tous les articles de loi cités ou appliqués (avec indication du code et du numéro, ex. art. 41 CO).\n\n"
+        "**3. Considérants du Tribunal**\n"
+        "Exposez le raisonnement juridique: interprétation normative, pesée des intérêts, "
+        "jurisprudence citée et arguments décisifs.\n\n"
+        "**4. Dispositif et implications**\n"
+        "Indiquez l'issue du jugement (admission/rejet/renvoi), le dispositif, les frais judiciaires et "
+        "les implications juridiques pertinentes pour la pratique.\n\n"
+        "Texte de l'arrêt:\n{testo}"
+    ),
+}
+
+
+def sintetizza_testo_sentenza_4_punti(testo: str, lang: str = "it") -> str:
+    l = lang if lang in PROMPT_SUMM else "it"
+
+    def call(t):
+        return chiama_openai(
+            system=SYSTEM_SUMM[l],
+            user=PROMPT_SUMM[l].format(testo=t),
+            max_tokens=1800,
+        )
+
+    return riassumi_con_chunking(testo, call)
+
+
+# ─── Endpoints ───────────────────────────────────────────────────────────────
+
+@app.route("/ricerca_sentenze", methods=["GET"])
 def ricerca_sentenze():
-    query = request.args.get('query')
-    lang = request.args.get('lang', 'it')
+    query = request.args.get("query", "").strip()
+    lang  = request.args.get("lang", "it")
     if not query:
-        return jsonify({"errore": "Parole chiave mancanti per la ricerca"}), 400
+        return jsonify({"errore": "Parametro 'query' mancante"}), 400
 
-    sentenze_trovate = cerca_sentenze_google(query)
-    risultati_sintetizzati = []
-    for sentenza in sentenze_trovate:
-        codice = sentenza["codice"]
-        url_bgerli = costruisci_url_bgerli(codice)
-        testo_scaricato = estrai_testo_sentenze(url_bgerli)
-        if "Errore" in testo_scaricato or "Testo della sentenza non trovato" in testo_scaricato:
-            sintesi = "Impossibile scaricare il contenuto della sentenza."
+    sentenze  = cerca_sentenze_google(query)
+    risultati = []
+    for s in sentenze:
+        url   = costruisci_url_bgerli(s["codice"])
+        testo = estrai_testo_sentenza(url)
+        if not testo or testo.startswith("ERRORE") or len(testo) < 100:
+            sintesi = "Impossibile recuperare il testo della sentenza."
         else:
-            sintesi = sintetizza_sentenza_10_righe(testo_scaricato, lang)
-        risultati_sintetizzati.append({
-            "titolo": codice,
-            "riassunto": sintesi,
-            "link": url_bgerli
-        })
-    return jsonify(risultati_sintetizzati)
+            sintesi = sintetizza_sentenza_10_righe(testo, lang)
+        risultati.append({"titolo": s["codice"], "riassunto": sintesi, "link": url})
 
-# Endpoint per la sintesi di una singola sentenza (4 punti) – supporta il parametro 'lang'
-@app.route('/sintesi', methods=['GET'])
+    return jsonify(risultati)
+
+
+@app.route("/sintesi", methods=["GET"])
 def get_summary():
-    codice_sentenza = request.args.get('codice')
-    lang = request.args.get('lang', 'it')
-    if not codice_sentenza:
-        return jsonify({"errore": "Codice sentenza mancante"}), 400
+    codice = request.args.get("codice", "").strip()
+    lang   = request.args.get("lang", "it")
+    if not codice:
+        return jsonify({"errore": "Parametro 'codice' mancante"}), 400
 
-    url_bgerli = costruisci_url_bgerli(codice_sentenza)
-    testo_scaricato = estrai_testo_sentenze(url_bgerli)
-    if "Errore" in testo_scaricato or "Testo della sentenza non trovato" in testo_scaricato:
-        return jsonify({"errore": testo_scaricato}), 404
+    url   = costruisci_url_bgerli(codice)
+    testo = estrai_testo_sentenza(url)
+    if not testo or testo.startswith("ERRORE") or len(testo) < 100:
+        return jsonify({"errore": "Impossibile recuperare il testo della sentenza."}), 404
 
-    sintesi = sintetizza_testo_sentenza_4_punti(testo_scaricato, lang)
+    sintesi = sintetizza_testo_sentenza_4_punti(testo, lang)
     return jsonify({"sintesi": sintesi})
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
-
-
+    app.run(host="0.0.0.0", port=port)
