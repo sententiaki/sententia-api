@@ -1,5 +1,6 @@
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
@@ -65,7 +66,7 @@ def costruisci_url_bgerli(codice):
 
 def estrai_testo_sentenza(url):
     try:
-        resp = requests.get(url, timeout=120)
+        resp = requests.get(url, timeout=20)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
         content = soup.find("div", id="content")
@@ -161,7 +162,7 @@ def sintetizza_sentenza_10_righe(testo: str, lang: str = "it") -> str:
         return chiama_openai(
             system=SYSTEM_SEARCH[l],
             user=PROMPT_SEARCH[l].format(testo=t),
-            max_tokens=800,
+            max_tokens=600,
         )
 
     return riassumi_con_chunking(testo, call)
@@ -243,7 +244,7 @@ def sintetizza_testo_sentenza_4_punti(testo: str, lang: str = "it") -> str:
         return chiama_openai(
             system=SYSTEM_SUMM[l],
             user=PROMPT_SUMM[l].format(testo=t),
-            max_tokens=1800,
+            max_tokens=1200,
         )
 
     return riassumi_con_chunking(testo, call)
@@ -258,18 +259,24 @@ def ricerca_sentenze():
     if not query:
         return jsonify({"errore": "Parametro 'query' mancante"}), 400
 
-    sentenze  = cerca_sentenze_google(query)
-    risultati = []
-    for s in sentenze:
+    sentenze = cerca_sentenze_google(query)
+
+    def processa(s):
         url   = costruisci_url_bgerli(s["codice"])
         testo = estrai_testo_sentenza(url)
         if not testo or testo.startswith("ERRORE") or len(testo) < 100:
             sintesi = "Impossibile recuperare il testo della sentenza."
         else:
             sintesi = sintetizza_sentenza_10_righe(testo, lang)
-        risultati.append({"titolo": s["codice"], "riassunto": sintesi, "link": url})
+        return {"titolo": s["codice"], "riassunto": sintesi, "link": url}
 
-    return jsonify(risultati)
+    with ThreadPoolExecutor(max_workers=5) as ex:
+        futures = {ex.submit(processa, s): i for i, s in enumerate(sentenze)}
+        risultati = [None] * len(sentenze)
+        for fut in as_completed(futures):
+            risultati[futures[fut]] = fut.result()
+
+    return jsonify([r for r in risultati if r is not None])
 
 
 @app.route("/sintesi", methods=["GET"])
