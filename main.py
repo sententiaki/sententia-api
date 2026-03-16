@@ -3,6 +3,8 @@ import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import requests
 from bs4 import BeautifulSoup
 from deep_translator import GoogleTranslator
@@ -24,6 +26,17 @@ MODEL  = "gpt-4o-mini"
 
 app = Flask(__name__)
 CORS(app)
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=[],
+    storage_uri="memory://",
+)
+
+@app.errorhandler(429)
+def troppe_richieste(e):
+    return jsonify({"errore": "Limite di richieste superato. Riprova tra qualche minuto."}), 429
 
 
 # ─── Utilità ────────────────────────────────────────────────────────────────
@@ -253,6 +266,7 @@ def sintetizza_testo_sentenza_4_punti(testo: str, lang: str = "it") -> str:
 # ─── Endpoints ───────────────────────────────────────────────────────────────
 
 @app.route("/ricerca_sentenze", methods=["GET"])
+@limiter.limit("5 per minute; 30 per day")
 def ricerca_sentenze():
     query = request.args.get("query", "").strip()
     lang  = request.args.get("lang", "it")
@@ -280,6 +294,7 @@ def ricerca_sentenze():
 
 
 @app.route("/sintesi", methods=["GET"])
+@limiter.limit("10 per minute; 50 per day")
 def get_summary():
     codice = request.args.get("codice", "").strip()
     lang   = request.args.get("lang", "it")
