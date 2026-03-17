@@ -42,33 +42,46 @@ def troppe_richieste(e):
 # ─── Utilità ────────────────────────────────────────────────────────────────
 
 def traduci_parole_chiave(parole_chiave):
-    return {
-        "it": parole_chiave,
-        "de": GoogleTranslator(source="it", target="de").translate(parole_chiave),
-        "fr": GoogleTranslator(source="it", target="fr").translate(parole_chiave),
-    }
+    def _traduci(target):
+        return GoogleTranslator(source="it", target=target).translate(parole_chiave)
+
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        fut_de = ex.submit(_traduci, "de")
+        fut_fr = ex.submit(_traduci, "fr")
+        de = fut_de.result()
+        fr = fut_fr.result()
+
+    return {"it": parole_chiave, "de": de, "fr": fr}
 
 
-def cerca_sentenze_google(parole_chiave):
-    risultati_finali = []
-    traduzioni = traduci_parole_chiave(parole_chiave)
-    for lang, query in traduzioni.items():
-        url = (
-            f"https://www.googleapis.com/customsearch/v1"
-            f"?q={query}+site:bger.ch"
-            f"&key={GOOGLE_API_KEY}&cx={GOOGLE_CSE_ID}"
-        )
-        try:
-            resp = requests.get(url, timeout=15)
-            resp.raise_for_status()
-        except Exception:
-            continue
+def _cse_query(query):
+    url = (
+        f"https://www.googleapis.com/customsearch/v1"
+        f"?q={query}+site:bger.ch"
+        f"&key={GOOGLE_API_KEY}&cx={GOOGLE_CSE_ID}"
+    )
+    try:
+        resp = requests.get(url, timeout=15)
+        resp.raise_for_status()
+        risultati = []
         for item in resp.json().get("items", [])[:5]:
             titolo = item.get("title", "")
             link   = item.get("link", "")
             m = re.search(r"(\d+[A-Z]_\d+/\d+|\d+\s+[IVXLCDM]+\s+\d+)", titolo)
             if m:
-                risultati_finali.append({"codice": m.group(1), "link": link})
+                risultati.append({"codice": m.group(1), "link": link})
+        return risultati
+    except Exception:
+        return []
+
+
+def cerca_sentenze_google(parole_chiave):
+    traduzioni = traduci_parole_chiave(parole_chiave)
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        futures = [ex.submit(_cse_query, q) for q in traduzioni.values()]
+        risultati_finali = []
+        for fut in as_completed(futures):
+            risultati_finali.extend(fut.result())
     return risultati_finali[:5]
 
 
@@ -170,15 +183,19 @@ PROMPT_SEARCH = {
 
 def sintetizza_sentenza_10_righe(testo: str, lang: str = "it") -> str:
     l = lang if lang in PROMPT_SEARCH else "it"
+    enc = tiktoken.encoding_for_model("gpt-4o")
+    tokens = enc.encode(testo)
+    if len(tokens) > 6000:
+        testo = enc.decode(tokens[:6000])
 
     def call(t):
         return chiama_openai(
             system=SYSTEM_SEARCH[l],
             user=PROMPT_SEARCH[l].format(testo=t),
-            max_tokens=600,
+            max_tokens=550,
         )
 
-    return riassumi_con_chunking(testo, call)
+    return call(testo)
 
 
 # ─── Legal Summarization: analisi completa (4 punti) ────────────────────────
@@ -257,7 +274,7 @@ def sintetizza_testo_sentenza_4_punti(testo: str, lang: str = "it") -> str:
         return chiama_openai(
             system=SYSTEM_SUMM[l],
             user=PROMPT_SUMM[l].format(testo=t),
-            max_tokens=1200,
+            max_tokens=950,
         )
 
     return riassumi_con_chunking(testo, call)
