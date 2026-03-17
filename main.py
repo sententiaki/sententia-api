@@ -307,123 +307,110 @@ def ricerca_sentenze():
     return jsonify([r for r in risultati if r is not None])
 
 
-# ─── Law text retrieval ──────────────────────────────────────────────────────
+# ─── Law text retrieval via PDF ──────────────────────────────────────────────
 
-LANG_CODE = {"it": "ITA", "de": "DEU", "fr": "FRA"}
+from io import BytesIO
+from pdfminer.high_level import extract_text as pdf_extract_text
 
-def _sparql_find_law(sr: str, lang: str):
-    """Query fedlex SPARQL for the HTML file URL of a law by SR number."""
-    lc = LANG_CODE.get(lang, "ITA")
-    query = f"""
-PREFIX jolux: <http://data.legilux.public.lu/resource/ontology/jolux#>
-SELECT DISTINCT ?act ?url WHERE {{
-  ?act jolux:classifiedByTaxonomyEntry ?entry .
-  ?entry ?p "{sr}" .
-  OPTIONAL {{
-    ?act jolux:isRealizedBy ?expr .
-    ?expr jolux:language <http://publications.europa.eu/resource/authority/language/{lc}> .
-    ?expr jolux:isEmbodiedBy ?manif .
-    ?manif jolux:isExemplifiedBy ?url .
-  }}
-}}
-LIMIT 10"""
-    r = requests.get(
-        "https://fedlex.data.admin.ch/sparql",
-        params={"query": query, "format": "json"},
-        headers={"Accept": "application/sparql-results+json"},
-        timeout=10,
+
+def _pdf_url(eli_url: str, lang: str) -> str:
+    """Derive fedlex filestore PDF URL from a fedlex ELI URL."""
+    # eli_url example: https://www.fedlex.admin.ch/eli/cc/27/317_321_377/it
+    m = re.match(
+        r'https://www\.fedlex\.admin\.ch(/eli/[a-z]+/[^/]+/.+?)(?:/[a-z]{2})?$',
+        eli_url.strip()
     )
-    r.raise_for_status()
-    bindings = r.json().get("results", {}).get("bindings", [])
-    act_uri, html_url = None, None
-    for b in bindings:
-        act_uri = act_uri or b.get("act", {}).get("value")
-        u = b.get("url", {}).get("value", "")
-        if u and "html" in u.lower() and f"/{lang}/" in u:
-            html_url = u
+    if not m:
+        return None
+    path = m.group(1)  # e.g. /eli/cc/27/317_321_377
+    fname = "fedlex-data-admin-ch" + path.replace("/", "-") + f"-{lang}-pdf-a.pdf"
+    return (
+        f"https://www.fedlex.admin.ch/filestore/fedlex.data.admin.ch"
+        f"{path}/{lang}/pdf-a/{fname}"
+    )
+
+
+def _fetch_and_parse_pdf(pdf_url: str, lang: str) -> tuple:
+    """Download law PDF from fedlex and extract structured article list."""
+    r = requests.get(
+        pdf_url,
+        headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"},
+        timeout=30,
+        stream=True,
+    )
+    if not r.ok or "pdf" not in r.headers.get("Content-Type", "").lower():
+        return None, None
+
+    buf = BytesIO()
+    for chunk in r.iter_content(chunk_size=65536):
+        buf.write(chunk)
+    buf.seek(0)
+
+    try:
+        raw = pdf_extract_text(buf)
+    except Exception:
+        return None, None
+
+    if not raw or len(raw) < 200:
+        return None, None
+
+    return _parse_law_text(raw)
+
+
+def _parse_law_text(text: str) -> tuple:
+    """Parse raw PDF text into (title, articoli) — article-level structure."""
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+
+    # Heuristic title: first substantial line before any "Art."
+    title = ""
+    for ln in lines[:30]:
+        if re.match(r'^Art\.?\s*\d', ln):
             break
-    return act_uri, html_url
+        if len(ln) > 10 and not re.match(r'^\d+$', ln):
+            title = ln
+            break
 
-
-def _fetch_html_law(url: str):
-    """Fetch HTML, trying Googlebot UA first (triggers SSR on some servers)."""
-    user_agents = [
-        "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
-    ]
-    for ua in user_agents:
-        try:
-            r = requests.get(url, headers={"User-Agent": ua, "Accept": "text/html"}, timeout=15)
-            if r.ok and len(r.text) > 2000:
-                soup = BeautifulSoup(r.text, "html.parser")
-                # Reject Angular shell (empty app-root with no real text)
-                app_root = soup.find("app-root")
-                if app_root is None or app_root.get_text(strip=True):
-                    return r.text, soup
-        except Exception:
-            pass
-    return None, None
-
-
-def _parse_law_soup(soup, sr: str):
-    """Extract structured article list from parsed law HTML."""
-    for tag in soup.find_all(["script", "style", "nav", "header", "footer", "iframe"]):
-        tag.decompose()
-    root = soup.find("app-root") or soup.find("main") or soup.body
-    title_el = root.find("h1") if root else None
-    title = title_el.get_text(strip=True) if title_el else f"SR {sr}"
     articoli = []
-    if root:
-        for el in root.find_all(["h1", "h2", "h3", "h4", "p", "li"]):
-            text = el.get_text(separator=" ", strip=True)
-            if text and len(text) > 3:
-                articoli.append({"tag": el.name, "text": text})
-    return title, articoli[:600]
+    ART_RE   = re.compile(r'^(Art\.?\s*\d+[a-z]?\b.*)$', re.IGNORECASE)
+    SEC_RE   = re.compile(r'^(Titolo|Sezione|Capitolo|Capo|Parte|Teil|Abschnitt|Kapitel)\b', re.IGNORECASE)
+    SKIP_RE  = re.compile(r'^\d+$|^[ivxlcdm]+$|^\.+$', re.IGNORECASE)
+
+    for ln in lines:
+        if SKIP_RE.match(ln) or len(ln) < 3:
+            continue
+        if ART_RE.match(ln):
+            articoli.append({"tag": "h3", "text": ln})
+        elif SEC_RE.match(ln):
+            articoli.append({"tag": "h2", "text": ln})
+        else:
+            articoli.append({"tag": "p", "text": ln})
+
+    return title, articoli[:800]
 
 
 @app.route("/legge", methods=["GET"])
-@limiter.limit("20 per minute; 100 per day")
+@limiter.limit("10 per minute; 60 per day")
 def get_legge():
-    sr   = request.args.get("sr", "").strip()
-    lang = request.args.get("lang", "it").strip().lower()
-    if not sr:
-        return jsonify({"errore": "Parametro 'sr' mancante"}), 400
+    eli_url = request.args.get("url", "").strip()
+    lang    = request.args.get("lang", "it").strip().lower()
+    sr      = request.args.get("sr", "").strip()
 
-    act_uri, html_url = None, None
+    if not eli_url:
+        return jsonify({"errore": "Parametro 'url' mancante"}), 400
 
-    # Step 1 – SPARQL lookup
-    try:
-        act_uri, html_url = _sparql_find_law(sr, lang)
-    except Exception:
-        pass
+    pdf_url = _pdf_url(eli_url, lang)
+    if not pdf_url:
+        return jsonify({"errore": "URL ELI non valido"}), 400
 
-    # Step 2 – derive URL from ELI URI if SPARQL gave one but no html_url
-    if act_uri and not html_url:
-        eli_path = act_uri.replace("https://fedlex.data.admin.ch", "")
-        html_url = f"https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch{eli_path}/{lang}/html/fedlex-data-admin-ch{eli_path.replace('/', '-')}-{lang}-html-1.html"
+    title, articoli = _fetch_and_parse_pdf(pdf_url, lang)
 
-    fedlex_page = f"https://www.fedlex.admin.ch{act_uri.replace('https://fedlex.data.admin.ch','')}/{lang}" if act_uri else None
+    if not articoli:
+        return jsonify({"sr": sr, "url": eli_url, "solo_link": True}), 206
 
-    if not html_url and not fedlex_page:
-        return jsonify({"errore": f"Legge SR {sr} non trovata"}), 404
-
-    # Step 3 – fetch and parse
-    fetch_url = html_url or fedlex_page
-    html_text, soup = _fetch_html_law(fetch_url)
-
-    if not html_text or not soup:
-        # Return metadata so frontend can show fallback
-        return jsonify({
-            "sr": sr,
-            "url": fedlex_page or fetch_url,
-            "solo_link": True,
-        }), 206  # partial
-
-    title, articoli = _parse_law_soup(soup, sr)
     return jsonify({
         "sr": sr,
         "titolo": title,
-        "url": fedlex_page or fetch_url,
+        "url": eli_url,
         "articoli": articoli,
     })
 
