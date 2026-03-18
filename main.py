@@ -441,9 +441,9 @@ def get_legge():
         r = requests.get(
             html_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=25
         )
-        if not r.ok or len(r.text) < 5000:
+        html_text = r.content.decode("utf-8", errors="replace")
+        if not r.ok or len(html_text) < 5000:
             return jsonify({"sr": sr, "url": fedlex_url, "solo_link": True}), 206
-        html_text = r.text
     except Exception:
         return jsonify({"sr": sr, "url": fedlex_url, "solo_link": True}), 206
 
