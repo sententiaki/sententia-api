@@ -390,12 +390,16 @@ def _parse_fedlex_html(html: str) -> tuple:
             r'<p\s[^>]*class="(?:absatz|man-template|ingress)[^"]*"[^>]*>(.*?)</p>',
             body, re.DOTALL
         ):
-            txt = re.sub(r'<sup>[^<]*</sup>', '', pm.group(1))  # strip footnote markers
+            inner = pm.group(1)
+            # Extract capoverso number from leading <sup>
+            sup_m = re.match(r'\s*<sup>([^<]{1,6})</sup>', inner)
+            n = sup_m.group(1).strip() if sup_m else None
+            txt = re.sub(r'<sup>[^<]*</sup>', '', inner)  # strip all sup (footnotes too)
             txt = re.sub(r'<[^>]+>', ' ', txt)
             txt = txt.replace('&nbsp;', '\u00a0').replace('&#160;', '\u00a0')
             txt = re.sub(r'\s+', ' ', txt).strip()
             if txt and len(txt) > 2:
-                paras.append(txt)
+                paras.append({"n": n, "text": txt})
 
         events.append((m.start(), {
             "type": "article",
