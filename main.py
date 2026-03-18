@@ -1,5 +1,6 @@
 import os
 import re
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -307,111 +308,157 @@ def ricerca_sentenze():
     return jsonify([r for r in risultati if r is not None])
 
 
-# ─── Law text retrieval via PDF ──────────────────────────────────────────────
+# ─── Law text retrieval via Fedlex SPARQL + public filestore ─────────────────
 
-from io import BytesIO
-from pdfminer.high_level import extract_text as pdf_extract_text
+SPARQL_ENDPOINT  = "https://fedlex.data.admin.ch/sparqlendpoint"
+PRIVATE_FILESTORE = "https://intranet.fedlex.admin.ch/casematesbo/"
+PUBLIC_FILESTORE  = "https://fedlex.data.admin.ch/"
+
+# In-memory cache: {(sr, lang): (timestamp, (title, elements))}
+_law_cache: dict = {}
+LAW_CACHE_TTL = 3600  # 1 hour
 
 
-def _pdf_url(eli_url: str, lang: str) -> str:
-    """Derive fedlex filestore PDF URL from a fedlex ELI URL."""
-    # eli_url example: https://www.fedlex.admin.ch/eli/cc/27/317_321_377/it
-    m = re.match(
-        r'https://www\.fedlex\.admin\.ch(/eli/[a-z]+/[^/]+/.+?)(?:/[a-z]{2})?$',
-        eli_url.strip()
+def _sparql_html_url(sr: str, lang: str) -> str | None:
+    """Get the most recent public HTML file URL for a law via Fedlex SPARQL."""
+    query = f"""PREFIX jolux: <http://data.legilux.public.lu/resource/ontology/jolux#>
+SELECT ?htmlUrl WHERE {{
+  ?act jolux:historicalLegalId "{sr}" .
+  ?dateAct jolux:isMemberOf ?act .
+  ?dateAct jolux:isRealizedBy ?expr .
+  FILTER(STRENDS(STR(?expr), "/{lang}"))
+  ?expr jolux:isEmbodiedBy ?htmlManif .
+  FILTER(STRENDS(STR(?htmlManif), "/html"))
+  ?htmlManif jolux:isExemplifiedByPrivate ?htmlUrl .
+}}
+ORDER BY DESC(STR(?dateAct)) LIMIT 1"""
+    r = requests.post(
+        SPARQL_ENDPOINT, data={"query": query},
+        headers={"Accept": "application/sparql-results+json"}, timeout=12
     )
-    if not m:
+    r.raise_for_status()
+    bindings = r.json().get("results", {}).get("bindings", [])
+    if not bindings:
         return None
-    path = m.group(1)  # e.g. /eli/cc/27/317_321_377
-    fname = "fedlex-data-admin-ch" + path.replace("/", "-") + f"-{lang}-pdf-a.pdf"
-    return (
-        f"https://www.fedlex.admin.ch/filestore/fedlex.data.admin.ch"
-        f"{path}/{lang}/pdf-a/{fname}"
-    )
+    private_url = bindings[0]["htmlUrl"]["value"]
+    return private_url.replace(PRIVATE_FILESTORE, PUBLIC_FILESTORE)
 
 
-def _fetch_and_parse_pdf(pdf_url: str, lang: str) -> tuple:
-    """Download law PDF from fedlex and extract structured article list."""
-    r = requests.get(
-        pdf_url,
-        headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"},
-        timeout=30,
-        stream=True,
-    )
-    if not r.ok or "pdf" not in r.headers.get("Content-Type", "").lower():
-        return None, None
+def _parse_fedlex_html(html: str) -> tuple:
+    """Parse fedlex law HTML into (title, elements) using fast regex (no BS4 needed)."""
+    # Title
+    t = re.search(r'class="erlasstitel[^"]*"[^>]*>(.*?)</h\d>', html, re.DOTALL)
+    s = re.search(r'class="erlasskurztitel[^"]*"[^>]*>(.*?)</h\d>', html, re.DOTALL)
+    title = re.sub(r'<[^>]+>', '', t.group(1)) if t else ""
+    if s:
+        title += " " + re.sub(r'<[^>]+>', '', s.group(1))
+    title = re.sub(r'\s+', ' ', title).strip()
 
-    buf = BytesIO()
-    for chunk in r.iter_content(chunk_size=65536):
-        buf.write(chunk)
-    buf.seek(0)
+    # Main content area
+    main_m = re.search(r'<main[^>]*id="maintext"[^>]*>(.*)', html, re.DOTALL)
+    if not main_m:
+        main_m = re.search(r'<div[^>]*id="lawcontent"[^>]*>(.*)', html, re.DOTALL)
+    content = main_m.group(1) if main_m else html
 
-    try:
-        raw = pdf_extract_text(buf)
-    except Exception:
-        return None, None
+    events = []  # (position, element_dict)
 
-    if not raw or len(raw) < 200:
-        return None, None
+    # Section headings: <h1-5 class="heading"...><a href="...">TEXT</a>
+    for m in re.finditer(
+        r'<(h[1-5])\s[^>]*class="heading[^"]*"[^>]*>.*?<a\s[^>]*href="[^"]*"[^>]*>(.*?)</a>',
+        content, re.DOTALL
+    ):
+        text = re.sub(r'<[^>]+>', '', m.group(2))
+        text = re.sub(r'\s+', ' ', text).strip()
+        if text:
+            events.append((m.start(), {"type": m.group(1), "text": text}))
 
-    return _parse_law_text(raw)
+    # Articles: <article id="art_N">...</article>
+    for m in re.finditer(
+        r'<article\s+id="(art_[^"]+)"[^>]*>(.*?)</article>',
+        content, re.DOTALL
+    ):
+        art_id = m.group(1)
+        body   = m.group(2)
 
+        # Article heading: <b>Art. N</b>
+        hm = re.search(r'<b>(Art\.[^<]{0,40})</b>', body)
+        heading = hm.group(1).strip() if hm else art_id.replace('art_', 'Art. ')
 
-def _parse_law_text(text: str) -> tuple:
-    """Parse raw PDF text into (title, articoli) — article-level structure."""
-    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+        # Paragraphs
+        paras = []
+        for pm in re.finditer(
+            r'<p\s[^>]*class="(?:absatz|man-template|ingress)[^"]*"[^>]*>(.*?)</p>',
+            body, re.DOTALL
+        ):
+            txt = re.sub(r'<sup>[^<]*</sup>', '', pm.group(1))  # strip footnote markers
+            txt = re.sub(r'<[^>]+>', ' ', txt)
+            txt = txt.replace('&nbsp;', '\u00a0').replace('&#160;', '\u00a0')
+            txt = re.sub(r'\s+', ' ', txt).strip()
+            if txt and len(txt) > 2:
+                paras.append(txt)
 
-    # Heuristic title: first substantial line before any "Art."
-    title = ""
-    for ln in lines[:30]:
-        if re.match(r'^Art\.?\s*\d', ln):
-            break
-        if len(ln) > 10 and not re.match(r'^\d+$', ln):
-            title = ln
-            break
+        events.append((m.start(), {
+            "type": "article",
+            "id": art_id,
+            "heading": heading,
+            "paras": paras,
+        }))
 
-    articoli = []
-    ART_RE   = re.compile(r'^(Art\.?\s*\d+[a-z]?\b.*)$', re.IGNORECASE)
-    SEC_RE   = re.compile(r'^(Titolo|Sezione|Capitolo|Capo|Parte|Teil|Abschnitt|Kapitel)\b', re.IGNORECASE)
-    SKIP_RE  = re.compile(r'^\d+$|^[ivxlcdm]+$|^\.+$', re.IGNORECASE)
-
-    for ln in lines:
-        if SKIP_RE.match(ln) or len(ln) < 3:
-            continue
-        if ART_RE.match(ln):
-            articoli.append({"tag": "h3", "text": ln})
-        elif SEC_RE.match(ln):
-            articoli.append({"tag": "h2", "text": ln})
-        else:
-            articoli.append({"tag": "p", "text": ln})
-
-    return title, articoli[:800]
+    events.sort(key=lambda x: x[0])
+    return title, [e[1] for e in events]
 
 
 @app.route("/legge", methods=["GET"])
 @limiter.limit("10 per minute; 60 per day")
 def get_legge():
-    eli_url = request.args.get("url", "").strip()
-    lang    = request.args.get("lang", "it").strip().lower()
-    sr      = request.args.get("sr", "").strip()
+    sr         = request.args.get("sr",          "").strip()
+    lang       = request.args.get("lang",        "it").strip().lower()
+    fedlex_url = request.args.get("fedlex_url",  "").strip()
 
-    if not eli_url:
-        return jsonify({"errore": "Parametro 'url' mancante"}), 400
+    if not sr:
+        return jsonify({"errore": "Parametro 'sr' mancante"}), 400
 
-    pdf_url = _pdf_url(eli_url, lang)
-    if not pdf_url:
-        return jsonify({"errore": "URL ELI non valido"}), 400
+    # Check cache
+    cache_key = (sr, lang)
+    cached = _law_cache.get(cache_key)
+    if cached and (time.time() - cached[0]) < LAW_CACHE_TTL:
+        title, elements = cached[1]
+        return jsonify({"sr": sr, "lang": lang, "titolo": title,
+                        "url": fedlex_url, "articoli": elements})
 
-    title, articoli = _fetch_and_parse_pdf(pdf_url, lang)
+    # Find HTML URL via SPARQL
+    html_url = None
+    try:
+        html_url = _sparql_html_url(sr, lang)
+    except Exception:
+        pass
 
-    if not articoli:
-        return jsonify({"sr": sr, "url": eli_url, "solo_link": True}), 206
+    if not html_url:
+        return jsonify({"sr": sr, "url": fedlex_url, "solo_link": True}), 206
+
+    # Fetch HTML from public filestore
+    try:
+        r = requests.get(
+            html_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=25
+        )
+        if not r.ok or len(r.text) < 5000:
+            return jsonify({"sr": sr, "url": fedlex_url, "solo_link": True}), 206
+        html_text = r.text
+    except Exception:
+        return jsonify({"sr": sr, "url": fedlex_url, "solo_link": True}), 206
+
+    # Parse
+    title, elements = _parse_fedlex_html(html_text)
+
+    # Cache
+    _law_cache[cache_key] = (time.time(), (title, elements))
 
     return jsonify({
         "sr": sr,
+        "lang": lang,
         "titolo": title,
-        "url": eli_url,
-        "articoli": articoli,
+        "url": fedlex_url or html_url,
+        "articoli": elements,
     })
 
 
