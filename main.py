@@ -483,6 +483,28 @@ def get_summary():
     return jsonify({"sintesi": sintesi})
 
 
+@app.route("/html_federale", methods=["GET"])
+@limiter.limit("30 per minute")
+def get_html_federale():
+    url = request.args.get("url", "").strip()
+    if not url:
+        return jsonify({"errore": "Parametro 'url' mancante"}), 400
+    allowed = ("https://bger.ch", "https://www.bger.ch", "https://bger.li")
+    if not any(url.startswith(p) for p in allowed):
+        return jsonify({"errore": "URL non consentito"}), 400
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "it,de,fr,en;q=0.5",
+        }
+        resp = requests.get(url, timeout=20, headers=headers, allow_redirects=True)
+        resp.raise_for_status()
+        return jsonify({"html": resp.text, "url": resp.url})
+    except Exception as e:
+        return jsonify({"errore": str(e)}), 500
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
