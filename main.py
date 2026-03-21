@@ -362,15 +362,17 @@ def _parse_fedlex_html(html: str) -> tuple:
 
     events = []  # (position, element_dict)
 
-    # Section headings: <h1-5 class="heading"...><a href="...">TEXT</a>
+    # Section headings + rubrics: <h1-5> and <div class="heading"> with a link
     for m in re.finditer(
-        r'<(h[1-5])\s[^>]*class="heading[^"]*"[^>]*>.*?<a\s[^>]*href="[^"]*"[^>]*>(.*?)</a>',
+        r'<(h[1-5]|div)\s[^>]*class="heading[^"]*"[^>]*>.*?<a\s[^>]*href="[^"]*"[^>]*>(.*?)</a>',
         content, re.DOTALL
     ):
+        tag  = m.group(1)
         text = re.sub(r'<[^>]+>', '', m.group(2))
         text = re.sub(r'\s+', ' ', text).strip()
         if text:
-            events.append((m.start(), {"type": m.group(1), "text": text}))
+            htype = tag if tag != 'div' else 'h6'
+            events.append((m.start(), {"type": htype, "text": text}))
 
     # Articles: <article id="art_N">...</article>
     for m in re.finditer(
