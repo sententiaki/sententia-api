@@ -40,7 +40,7 @@ def troppe_richieste(e):
     return jsonify({"errore": "Limite di richieste superato. Riprova tra qualche minuto."}), 429
 
 
-# ‚îÄ‚îÄ‚îÄ Utilit√† ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+# ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ Utilit‚àö‚Ä† ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ
 
 def traduci_parole_chiave(parole_chiave):
     def _traduci(target):
@@ -134,7 +134,7 @@ def riassumi_con_chunking(testo: str, fn_call) -> str:
     return fn_call("\n\n".join(parziali))
 
 
-# ‚îÄ‚îÄ‚îÄ Smart Search: sintesi compatta (~10 righe) ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+# ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ Smart Search: sintesi compatta (~10 righe) ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ
 
 SYSTEM_SEARCH = {
     "it": (
@@ -143,11 +143,11 @@ SYSTEM_SEARCH = {
     ),
     "de": (
         "Du bist ein erfahrener Schweizer Jurist im Bundesrecht. "
-        "Erstelle pr√§zise, strukturierte Zusammenfassungen von Bundesgerichtsurteilen."
+        "Erstelle pr‚àö¬ßzise, strukturierte Zusammenfassungen von Bundesgerichtsurteilen."
     ),
     "fr": (
-        "Vous √™tes un juriste suisse expert en droit f√©d√©ral. "
-        "Produisez des synth√®ses concises et rigoureusement structur√©es des arr√™ts du Tribunal f√©d√©ral."
+        "Vous ‚àö‚Ñ¢tes un juriste suisse expert en droit f‚àö¬©d‚àö¬©ral. "
+        "Produisez des synth‚àö¬Æses concises et rigoureusement structur‚àö¬©es des arr‚àö‚Ñ¢ts du Tribunal f‚àö¬©d‚àö¬©ral."
     ),
 }
 
@@ -163,21 +163,21 @@ PROMPT_SEARCH = {
     ),
     "de": (
         "Analysiere das folgende Urteil des Schweizer Bundesgerichts und erstelle eine strukturierte Zusammenfassung:\n\n"
-        "**Rechtsfrage**: (1-2 S√§tze zur zentralen Frage)\n"
-        "**Relevanter Sachverhalt**: (3-4 S√§tze zu den massgebenden Fakten)\n"
-        "**Entscheid**: (2-3 S√§tze zum Ergebnis und zur Hauptbegr√ºndung)\n"
+        "**Rechtsfrage**: (1-2 S‚àö¬ßtze zur zentralen Frage)\n"
+        "**Relevanter Sachverhalt**: (3-4 S‚àö¬ßtze zu den massgebenden Fakten)\n"
+        "**Entscheid**: (2-3 S‚àö¬ßtze zum Ergebnis und zur Hauptbegr‚àö¬∫ndung)\n"
         "**Angewendete Artikel**: (Stichpunkte mit den zitierten Normen)\n\n"
-        "Verwende pr√§zise juristische Sprache.\n\n"
+        "Verwende pr‚àö¬ßzise juristische Sprache.\n\n"
         "Urteilstext:\n{testo}"
     ),
     "fr": (
-        "Analysez l'arr√™t du Tribunal f√©d√©ral suisse ci-dessous et fournissez une synth√®se structur√©e:\n\n"
+        "Analysez l'arr‚àö‚Ñ¢t du Tribunal f‚àö¬©d‚àö¬©ral suisse ci-dessous et fournissez une synth‚àö¬Æse structur‚àö¬©e:\n\n"
         "**Question juridique**: (1-2 phrases sur la question centrale)\n"
-        "**Faits pertinents**: (3-4 phrases sur les faits d√©terminants)\n"
-        "**D√©cision**: (2-3 phrases sur le r√©sultat et la motivation principale)\n"
-        "**Articles appliqu√©s**: (liste √† puces des r√©f√©rences normatives cit√©es)\n\n"
-        "Utilisez un langage juridique pr√©cis.\n\n"
-        "Texte de l'arr√™t:\n{testo}"
+        "**Faits pertinents**: (3-4 phrases sur les faits d‚àö¬©terminants)\n"
+        "**D‚àö¬©cision**: (2-3 phrases sur le r‚àö¬©sultat et la motivation principale)\n"
+        "**Articles appliqu‚àö¬©s**: (liste ‚àö‚Ä† puces des r‚àö¬©f‚àö¬©rences normatives cit‚àö¬©es)\n\n"
+        "Utilisez un langage juridique pr‚àö¬©cis.\n\n"
+        "Texte de l'arr‚àö‚Ñ¢t:\n{testo}"
     ),
 }
 
@@ -199,23 +199,23 @@ def sintetizza_sentenza_10_righe(testo: str, lang: str = "it") -> str:
     return call(testo)
 
 
-# ‚îÄ‚îÄ‚îÄ Legal Summarization: analisi completa (4 punti) ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+# ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ Legal Summarization: analisi completa (4 punti) ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ
 
 SYSTEM_SUMM = {
     "it": (
         "Sei un avvocato svizzero con profonda competenza in diritto federale. "
         "Produci analisi giuridiche professionali, strutturate e complete di sentenze del Tribunale federale. "
-        "Il tuo linguaggio √® tecnico, preciso e adatto a professionisti del diritto."
+        "Il tuo linguaggio ‚àö¬Æ tecnico, preciso e adatto a professionisti del diritto."
     ),
     "de": (
         "Du bist ein Schweizer Rechtsanwalt mit fundierter Expertise im Bundesrecht. "
-        "Du erstellst professionelle, strukturierte und vollst√§ndige rechtliche Analysen von Bundesgerichtsurteilen. "
-        "Deine Sprache ist technisch, pr√§zise und f√ºr Rechtsfachleute geeignet."
+        "Du erstellst professionelle, strukturierte und vollst‚àö¬ßndige rechtliche Analysen von Bundesgerichtsurteilen. "
+        "Deine Sprache ist technisch, pr‚àö¬ßzise und f‚àö¬∫r Rechtsfachleute geeignet."
     ),
     "fr": (
-        "Vous √™tes un avocat suisse avec une profonde expertise en droit f√©d√©ral. "
-        "Vous produisez des analyses juridiques professionnelles, structur√©es et compl√®tes des arr√™ts du Tribunal f√©d√©ral. "
-        "Votre langage est technique, pr√©cis et adapt√© aux professionnels du droit."
+        "Vous ‚àö‚Ñ¢tes un avocat suisse avec une profonde expertise en droit f‚àö¬©d‚àö¬©ral. "
+        "Vous produisez des analyses juridiques professionnelles, structur‚àö¬©es et compl‚àö¬Ætes des arr‚àö‚Ñ¢ts du Tribunal f‚àö¬©d‚àö¬©ral. "
+        "Votre langage est technique, pr‚àö¬©cis et adapt‚àö¬© aux professionnels du droit."
     ),
 }
 
@@ -235,32 +235,32 @@ PROMPT_SUMM = {
         "Testo della sentenza:\n{testo}"
     ),
     "de": (
-        "Analysiere das folgende Urteil des Schweizer Bundesgerichts vollst√§ndig und professionell. "
+        "Analysiere das folgende Urteil des Schweizer Bundesgerichts vollst‚àö¬ßndig und professionell. "
         "Strukturiere deine Analyse genau wie folgt:\n\n"
         "**1. Sachverhalt**\n"
-        "In 2-3 S√§tzen: beteiligte Parteien, zentrale Rechtsfrage und Verfahrensgang.\n\n"
+        "In 2-3 S‚àö¬ßtzen: beteiligte Parteien, zentrale Rechtsfrage und Verfahrensgang.\n\n"
         "**2. Massgebende Rechtsartikel**\n"
         "Liste alle zitierten oder angewendeten Gesetzesartikel auf (mit Angabe des Gesetzes und Nummer, z.B. Art. 41 OR).\n\n"
-        "**3. Erw√§gungen des Gerichts**\n"
-        "Stelle die rechtliche Argumentation des Gerichts dar: Normeninterpretation, Interessenabw√§gung, "
+        "**3. Erw‚àö¬ßgungen des Gerichts**\n"
+        "Stelle die rechtliche Argumentation des Gerichts dar: Normeninterpretation, Interessenabw‚àö¬ßgung, "
         "herangezogene Rechtsprechung und entscheidende Argumente.\n\n"
         "**4. Dispositiv und Implikationen**\n"
-        "In 2 S√§tzen: Urteilsergebnis (Gutheissung/Abweisung/R√ºckweisung) und wichtigste praktische Implikation.\n\n"
+        "In 2 S‚àö¬ßtzen: Urteilsergebnis (Gutheissung/Abweisung/R‚àö¬∫ckweisung) und wichtigste praktische Implikation.\n\n"
         "Urteilstext:\n{testo}"
     ),
     "fr": (
-        "Analysez de mani√®re compl√®te et professionnelle l'arr√™t du Tribunal f√©d√©ral suisse ci-dessous. "
+        "Analysez de mani‚àö¬Ære compl‚àö¬Æte et professionnelle l'arr‚àö‚Ñ¢t du Tribunal f‚àö¬©d‚àö¬©ral suisse ci-dessous. "
         "Structurez votre analyse exactement comme suit:\n\n"
-        "**1. Faits et proc√©dure**\n"
-        "En 2-3 phrases: parties impliqu√©es, question juridique centrale et d√©roulement de la proc√©dure.\n\n"
-        "**2. Articles principaux appliqu√©s**\n"
-        "Listez tous les articles de loi cit√©s ou appliqu√©s (avec indication du code et du num√©ro, ex. art. 41 CO).\n\n"
-        "**3. Consid√©rants du Tribunal**\n"
-        "Exposez le raisonnement juridique: interpr√©tation normative, pes√©e des int√©r√™ts, "
-        "jurisprudence cit√©e et arguments d√©cisifs.\n\n"
+        "**1. Faits et proc‚àö¬©dure**\n"
+        "En 2-3 phrases: parties impliqu‚àö¬©es, question juridique centrale et d‚àö¬©roulement de la proc‚àö¬©dure.\n\n"
+        "**2. Articles principaux appliqu‚àö¬©s**\n"
+        "Listez tous les articles de loi cit‚àö¬©s ou appliqu‚àö¬©s (avec indication du code et du num‚àö¬©ro, ex. art. 41 CO).\n\n"
+        "**3. Consid‚àö¬©rants du Tribunal**\n"
+        "Exposez le raisonnement juridique: interpr‚àö¬©tation normative, pes‚àö¬©e des int‚àö¬©r‚àö‚Ñ¢ts, "
+        "jurisprudence cit‚àö¬©e et arguments d‚àö¬©cisifs.\n\n"
         "**4. Dispositif et implications**\n"
         "En 2 phrases: issue du jugement (admission/rejet/renvoi) et principale implication pratique.\n\n"
-        "Texte de l'arr√™t:\n{testo}"
+        "Texte de l'arr‚àö‚Ñ¢t:\n{testo}"
     ),
 }
 
@@ -278,7 +278,7 @@ def sintetizza_testo_sentenza_4_punti(testo: str, lang: str = "it") -> str:
     return riassumi_con_chunking(testo, call)
 
 
-# ‚îÄ‚îÄ‚îÄ Endpoints ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+# ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ Endpoints ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ
 
 @app.route("/ricerca_sentenze", methods=["GET"])
 @limiter.limit("5 per minute; 30 per day")
@@ -308,7 +308,7 @@ def ricerca_sentenze():
     return jsonify([r for r in risultati if r is not None])
 
 
-# ‚îÄ‚îÄ‚îÄ Law text retrieval via Fedlex SPARQL + public filestore ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ‚îÄ
+# ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ Law text retrieval via Fedlex SPARQL + public filestore ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ
 
 SPARQL_ENDPOINT  = "https://fedlex.data.admin.ch/sparqlendpoint"
 PRIVATE_FILESTORE = "https://intranet.fedlex.admin.ch/casematesbo/"
@@ -382,19 +382,10 @@ def _parse_fedlex_html(html: str) -> tuple:
         art_id = m.group(1)
         body   = m.group(2)
 
-        # Article heading: built from art_id (reliable), optionally enriched by <b> title
+        # Article heading: built from art_id (reliable)
         raw_num = art_id[4:]  # strip "art_"
         art_num_str = re.sub(r'_([a-z])', r'\1', raw_num)  # "653_a"->"653a"
         heading = f"Art. {art_num_str}"
-        # Check for title text in heading (some articles have "Art. N ‚Äì Title")
-        hm = re.search(r'<b>(Art\.[^<]*)</b>(?:<i>([^<]{1,10})</i>)?', body)
-        if hm:
-            title_extra = re.sub(r'<[^>]+>', '', hm.group(1))
-            title_extra = title_extra.replace('\u00a0', ' ').strip()
-            # Remove the number part, keep any title text after it
-            title_extra = re.sub(r'^Art\.?\s*[\d\w]*\s*', '', title_extra).strip()
-            if title_extra:
-                heading += f" ‚Äì {title_extra}"
 
         def _clean_para(inner, is_cpv):
             # Strip footnote spans before removing tags
