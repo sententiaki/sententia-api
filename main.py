@@ -382,10 +382,26 @@ def _parse_fedlex_html(html: str) -> tuple:
         art_id = m.group(1)
         body   = m.group(2)
 
-        # Article heading: built from art_id (reliable)
+        # Article number from id (always reliable)
         raw_num = art_id[4:]  # strip "art_"
         art_num_str = re.sub(r'_([a-z])', r'\1', raw_num)  # "653_a"->"653a"
         heading = f"Art. {art_num_str}"
+
+        # Try to enrich heading with title from <h6 class="heading"> inside article
+        h6_m = re.search(r'<h6[^>]*class="heading[^"]*"[^>]*>(.*?)</h6>', body, re.DOTALL)
+        if h6_m:
+            h6 = h6_m.group(1)
+            # Remove icons (spans) and footnote refs (sup)
+            h6 = re.sub(r'<span[^>]*>.*?</span>', '', h6, flags=re.DOTALL)
+            h6 = re.sub(r'<sup>.*?</sup>', '', h6, flags=re.DOTALL)
+            # Extract plain text
+            h6_txt = re.sub(r'<[^>]+>', ' ', h6)
+            h6_txt = h6_txt.replace('&nbsp;', ' ').replace('&#160;', ' ')
+            h6_txt = re.sub(r'\s+', ' ', h6_txt).strip()
+            # Remove the "Art. N" prefix (already in heading)
+            title_extra = re.sub(r'^Art\.?\s*\S+\s*', '', h6_txt).strip()
+            if title_extra:
+                heading = f"Art. {art_num_str} {title_extra}"
 
         def _clean_para(inner, is_cpv):
             # Strip footnote spans before removing tags
