@@ -106,10 +106,11 @@ def is_bvger_code(codice):
 
 def cerca_uuid_bvger(codice):
     try:
-        search_url = f"https://bvger.weblaw.ch/dashboard?guiLanguage=it&q={requests.utils.quote(codice)}"
-        resp = requests.get(f"https://r.jina.ai/{search_url}",
+        q = requests.utils.quote(codice + " site:bvger.weblaw.ch")
+        resp = requests.get(
+            f"https://r.jina.ai/https://duckduckgo.com/html/?q={q}",
             headers={"Accept": "text/plain"}, timeout=30)
-        m = re.search(r'cache[?%25]id[=%25]([0-9a-f-]{36})', resp.text)
+        m = re.search(r'([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})', resp.text)
         return m.group(1) if m else None
     except Exception:
         return None
