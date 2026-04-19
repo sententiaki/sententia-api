@@ -40,7 +40,7 @@ def troppe_richieste(e):
     return jsonify({"errore": "Limite di richieste superato. Riprova tra qualche minuto."}), 429
 
 
-# ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ Utilit‚àö‚Ä† ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ
+# âÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃ UtilitâÃ Ã¶âÃâ  âÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃ
 
 def traduci_parole_chiave(parole_chiave):
     def _traduci(target):
@@ -101,6 +101,28 @@ def estrai_testo_sentenza(url):
     except Exception as e:
         return f"ERRORE:{e}"
 
+def is_bvger_code(codice):
+    return bool(re.match(r'^[A-Z]-\d+/\d{4}$', codice.strip()))
+
+def cerca_uuid_bvger(codice):
+    try:
+        search_url = f"https://bvger.weblaw.ch/dashboard?guiLanguage=it&q={requests.utils.quote(codice)}"
+        resp = requests.get(f"https://r.jina.ai/{search_url}",
+            headers={"X-Return-Format": "html", "Accept": "text/html"}, timeout=25)
+        m = re.search(r'/cache\?id=([0-9a-f\-]{36})', resp.text)
+        return m.group(1) if m else None
+    except Exception:
+        return None
+
+def estrai_testo_bvger(uuid):
+    try:
+        cache_url = f"https://bvger.weblaw.ch/cache?guiLanguage=it&id={uuid}"
+        resp = requests.get(f"https://r.jina.ai/{cache_url}",
+            headers={"Accept": "text/plain"}, timeout=30)
+        return resp.text.strip() if len(resp.text) > 200 else ""
+    except Exception as e:
+        return f"ERRORE:{e}"
+
 
 def split_in_chunks(text, max_tokens=12000):
     enc    = tiktoken.encoding_for_model("gpt-4o")
@@ -134,7 +156,7 @@ def riassumi_con_chunking(testo: str, fn_call) -> str:
     return fn_call("\n\n".join(parziali))
 
 
-# ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ Smart Search: sintesi compatta (~10 righe) ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ
+# âÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃ Smart Search: sintesi compatta (~10 righe) âÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃ
 
 SYSTEM_SEARCH = {
     "it": (
@@ -143,11 +165,11 @@ SYSTEM_SEARCH = {
     ),
     "de": (
         "Du bist ein erfahrener Schweizer Jurist im Bundesrecht. "
-        "Erstelle pr‚àö¬ßzise, strukturierte Zusammenfassungen von Bundesgerichtsurteilen."
+        "Erstelle prâÃ Ã¶Â¬Ãzise, strukturierte Zusammenfassungen von Bundesgerichtsurteilen."
     ),
     "fr": (
-        "Vous ‚àö‚Ñ¢tes un juriste suisse expert en droit f‚àö¬©d‚àö¬©ral. "
-        "Produisez des synth‚àö¬Æses concises et rigoureusement structur‚àö¬©es des arr‚àö‚Ñ¢ts du Tribunal f‚àö¬©d‚àö¬©ral."
+        "Vous âÃ Ã¶âÃÂ¢tes un juriste suisse expert en droit fâÃ Ã¶Â¬Â©dâÃ Ã¶Â¬Â©ral. "
+        "Produisez des synthâÃ Ã¶Â¬Ãses concises et rigoureusement structurâÃ Ã¶Â¬Â©es des arrâÃ Ã¶âÃÂ¢ts du Tribunal fâÃ Ã¶Â¬Â©dâÃ Ã¶Â¬Â©ral."
     ),
 }
 
@@ -163,21 +185,21 @@ PROMPT_SEARCH = {
     ),
     "de": (
         "Analysiere das folgende Urteil des Schweizer Bundesgerichts und erstelle eine strukturierte Zusammenfassung:\n\n"
-        "**Rechtsfrage**: (1-2 S‚àö¬ßtze zur zentralen Frage)\n"
-        "**Relevanter Sachverhalt**: (3-4 S‚àö¬ßtze zu den massgebenden Fakten)\n"
-        "**Entscheid**: (2-3 S‚àö¬ßtze zum Ergebnis und zur Hauptbegr‚àö¬∫ndung)\n"
+        "**Rechtsfrage**: (1-2 SâÃ Ã¶Â¬Ãtze zur zentralen Frage)\n"
+        "**Relevanter Sachverhalt**: (3-4 SâÃ Ã¶Â¬Ãtze zu den massgebenden Fakten)\n"
+        "**Entscheid**: (2-3 SâÃ Ã¶Â¬Ãtze zum Ergebnis und zur HauptbegrâÃ Ã¶Â¬â«ndung)\n"
         "**Angewendete Artikel**: (Stichpunkte mit den zitierten Normen)\n\n"
-        "Verwende pr‚àö¬ßzise juristische Sprache.\n\n"
+        "Verwende prâÃ Ã¶Â¬Ãzise juristische Sprache.\n\n"
         "Urteilstext:\n{testo}"
     ),
     "fr": (
-        "Analysez l'arr‚àö‚Ñ¢t du Tribunal f‚àö¬©d‚àö¬©ral suisse ci-dessous et fournissez une synth‚àö¬Æse structur‚àö¬©e:\n\n"
+        "Analysez l'arrâÃ Ã¶âÃÂ¢t du Tribunal fâÃ Ã¶Â¬Â©dâÃ Ã¶Â¬Â©ral suisse ci-dessous et fournissez une synthâÃ Ã¶Â¬Ãse structurâÃ Ã¶Â¬Â©e:\n\n"
         "**Question juridique**: (1-2 phrases sur la question centrale)\n"
-        "**Faits pertinents**: (3-4 phrases sur les faits d‚àö¬©terminants)\n"
-        "**D‚àö¬©cision**: (2-3 phrases sur le r‚àö¬©sultat et la motivation principale)\n"
-        "**Articles appliqu‚àö¬©s**: (liste ‚àö‚Ä† puces des r‚àö¬©f‚àö¬©rences normatives cit‚àö¬©es)\n\n"
-        "Utilisez un langage juridique pr‚àö¬©cis.\n\n"
-        "Texte de l'arr‚àö‚Ñ¢t:\n{testo}"
+        "**Faits pertinents**: (3-4 phrases sur les faits dâÃ Ã¶Â¬Â©terminants)\n"
+        "**DâÃ Ã¶Â¬Â©cision**: (2-3 phrases sur le râÃ Ã¶Â¬Â©sultat et la motivation principale)\n"
+        "**Articles appliquâÃ Ã¶Â¬Â©s**: (liste âÃ Ã¶âÃâ  puces des râÃ Ã¶Â¬Â©fâÃ Ã¶Â¬Â©rences normatives citâÃ Ã¶Â¬Â©es)\n\n"
+        "Utilisez un langage juridique prâÃ Ã¶Â¬Â©cis.\n\n"
+        "Texte de l'arrâÃ Ã¶âÃÂ¢t:\n{testo}"
     ),
 }
 
@@ -199,23 +221,23 @@ def sintetizza_sentenza_10_righe(testo: str, lang: str = "it") -> str:
     return call(testo)
 
 
-# ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ Legal Summarization: analisi completa (4 punti) ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ
+# âÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃ Legal Summarization: analisi completa (4 punti) âÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃ
 
 SYSTEM_SUMM = {
     "it": (
         "Sei un avvocato svizzero con profonda competenza in diritto federale. "
         "Produci analisi giuridiche professionali, strutturate e complete di sentenze del Tribunale federale. "
-        "Il tuo linguaggio ‚àö¬Æ tecnico, preciso e adatto a professionisti del diritto."
+        "Il tuo linguaggio âÃ Ã¶Â¬Ã tecnico, preciso e adatto a professionisti del diritto."
     ),
     "de": (
         "Du bist ein Schweizer Rechtsanwalt mit fundierter Expertise im Bundesrecht. "
-        "Du erstellst professionelle, strukturierte und vollst‚àö¬ßndige rechtliche Analysen von Bundesgerichtsurteilen. "
-        "Deine Sprache ist technisch, pr‚àö¬ßzise und f‚àö¬∫r Rechtsfachleute geeignet."
+        "Du erstellst professionelle, strukturierte und vollstâÃ Ã¶Â¬Ãndige rechtliche Analysen von Bundesgerichtsurteilen. "
+        "Deine Sprache ist technisch, prâÃ Ã¶Â¬Ãzise und fâÃ Ã¶Â¬â«r Rechtsfachleute geeignet."
     ),
     "fr": (
-        "Vous ‚àö‚Ñ¢tes un avocat suisse avec une profonde expertise en droit f‚àö¬©d‚àö¬©ral. "
-        "Vous produisez des analyses juridiques professionnelles, structur‚àö¬©es et compl‚àö¬Ætes des arr‚àö‚Ñ¢ts du Tribunal f‚àö¬©d‚àö¬©ral. "
-        "Votre langage est technique, pr‚àö¬©cis et adapt‚àö¬© aux professionnels du droit."
+        "Vous âÃ Ã¶âÃÂ¢tes un avocat suisse avec une profonde expertise en droit fâÃ Ã¶Â¬Â©dâÃ Ã¶Â¬Â©ral. "
+        "Vous produisez des analyses juridiques professionnelles, structurâÃ Ã¶Â¬Â©es et complâÃ Ã¶Â¬Ãtes des arrâÃ Ã¶âÃÂ¢ts du Tribunal fâÃ Ã¶Â¬Â©dâÃ Ã¶Â¬Â©ral. "
+        "Votre langage est technique, prâÃ Ã¶Â¬Â©cis et adaptâÃ Ã¶Â¬Â© aux professionnels du droit."
     ),
 }
 
@@ -235,32 +257,32 @@ PROMPT_SUMM = {
         "Testo della sentenza:\n{testo}"
     ),
     "de": (
-        "Analysiere das folgende Urteil des Schweizer Bundesgerichts vollst‚àö¬ßndig und professionell. "
+        "Analysiere das folgende Urteil des Schweizer Bundesgerichts vollstâÃ Ã¶Â¬Ãndig und professionell. "
         "Strukturiere deine Analyse genau wie folgt:\n\n"
         "**1. Sachverhalt**\n"
-        "In 2-3 S‚àö¬ßtzen: beteiligte Parteien, zentrale Rechtsfrage und Verfahrensgang.\n\n"
+        "In 2-3 SâÃ Ã¶Â¬Ãtzen: beteiligte Parteien, zentrale Rechtsfrage und Verfahrensgang.\n\n"
         "**2. Massgebende Rechtsartikel**\n"
         "Liste alle zitierten oder angewendeten Gesetzesartikel auf (mit Angabe des Gesetzes und Nummer, z.B. Art. 41 OR).\n\n"
-        "**3. Erw‚àö¬ßgungen des Gerichts**\n"
-        "Stelle die rechtliche Argumentation des Gerichts dar: Normeninterpretation, Interessenabw‚àö¬ßgung, "
+        "**3. ErwâÃ Ã¶Â¬Ãgungen des Gerichts**\n"
+        "Stelle die rechtliche Argumentation des Gerichts dar: Normeninterpretation, InteressenabwâÃ Ã¶Â¬Ãgung, "
         "herangezogene Rechtsprechung und entscheidende Argumente.\n\n"
         "**4. Dispositiv und Implikationen**\n"
-        "In 2 S‚àö¬ßtzen: Urteilsergebnis (Gutheissung/Abweisung/R‚àö¬∫ckweisung) und wichtigste praktische Implikation.\n\n"
+        "In 2 SâÃ Ã¶Â¬Ãtzen: Urteilsergebnis (Gutheissung/Abweisung/RâÃ Ã¶Â¬â«ckweisung) und wichtigste praktische Implikation.\n\n"
         "Urteilstext:\n{testo}"
     ),
     "fr": (
-        "Analysez de mani‚àö¬Ære compl‚àö¬Æte et professionnelle l'arr‚àö‚Ñ¢t du Tribunal f‚àö¬©d‚àö¬©ral suisse ci-dessous. "
+        "Analysez de maniâÃ Ã¶Â¬Ãre complâÃ Ã¶Â¬Ãte et professionnelle l'arrâÃ Ã¶âÃÂ¢t du Tribunal fâÃ Ã¶Â¬Â©dâÃ Ã¶Â¬Â©ral suisse ci-dessous. "
         "Structurez votre analyse exactement comme suit:\n\n"
-        "**1. Faits et proc‚àö¬©dure**\n"
-        "En 2-3 phrases: parties impliqu‚àö¬©es, question juridique centrale et d‚àö¬©roulement de la proc‚àö¬©dure.\n\n"
-        "**2. Articles principaux appliqu‚àö¬©s**\n"
-        "Listez tous les articles de loi cit‚àö¬©s ou appliqu‚àö¬©s (avec indication du code et du num‚àö¬©ro, ex. art. 41 CO).\n\n"
-        "**3. Consid‚àö¬©rants du Tribunal**\n"
-        "Exposez le raisonnement juridique: interpr‚àö¬©tation normative, pes‚àö¬©e des int‚àö¬©r‚àö‚Ñ¢ts, "
-        "jurisprudence cit‚àö¬©e et arguments d‚àö¬©cisifs.\n\n"
+        "**1. Faits et procâÃ Ã¶Â¬Â©dure**\n"
+        "En 2-3 phrases: parties impliquâÃ Ã¶Â¬Â©es, question juridique centrale et dâÃ Ã¶Â¬Â©roulement de la procâÃ Ã¶Â¬Â©dure.\n\n"
+        "**2. Articles principaux appliquâÃ Ã¶Â¬Â©s**\n"
+        "Listez tous les articles de loi citâÃ Ã¶Â¬Â©s ou appliquâÃ Ã¶Â¬Â©s (avec indication du code et du numâÃ Ã¶Â¬Â©ro, ex. art. 41 CO).\n\n"
+        "**3. ConsidâÃ Ã¶Â¬Â©rants du Tribunal**\n"
+        "Exposez le raisonnement juridique: interprâÃ Ã¶Â¬Â©tation normative, pesâÃ Ã¶Â¬Â©e des intâÃ Ã¶Â¬Â©râÃ Ã¶âÃÂ¢ts, "
+        "jurisprudence citâÃ Ã¶Â¬Â©e et arguments dâÃ Ã¶Â¬Â©cisifs.\n\n"
         "**4. Dispositif et implications**\n"
         "En 2 phrases: issue du jugement (admission/rejet/renvoi) et principale implication pratique.\n\n"
-        "Texte de l'arr‚àö‚Ñ¢t:\n{testo}"
+        "Texte de l'arrâÃ Ã¶âÃÂ¢t:\n{testo}"
     ),
 }
 
@@ -278,7 +300,7 @@ def sintetizza_testo_sentenza_4_punti(testo: str, lang: str = "it") -> str:
     return riassumi_con_chunking(testo, call)
 
 
-# ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ Endpoints ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ
+# âÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃ Endpoints âÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃ
 
 @app.route("/ricerca_sentenze", methods=["GET"])
 @limiter.limit("5 per minute; 30 per day")
@@ -308,7 +330,7 @@ def ricerca_sentenze():
     return jsonify([r for r in risultati if r is not None])
 
 
-# ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ Law text retrieval via Fedlex SPARQL + public filestore ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ‚Äö√Æ√Ñ
+# âÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃ Law text retrieval via Fedlex SPARQL + public filestore âÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃâÃÃ¶âÃâÃ
 
 SPARQL_ENDPOINT  = "https://fedlex.data.admin.ch/sparqlendpoint"
 PRIVATE_FILESTORE = "https://intranet.fedlex.admin.ch/casematesbo/"
@@ -516,11 +538,17 @@ def get_summary():
     if not codice:
         return jsonify({"errore": "Parametro 'codice' mancante"}), 400
 
-    url   = costruisci_url_bgerli(codice)
-    testo = estrai_testo_sentenza(url)
+    if is_bvger_code(codice):
+        uuid = cerca_uuid_bvger(codice)
+        if not uuid:
+            return jsonify({"errore": "Sentenza BVGer non trovata su weblaw.ch."}), 404
+        testo = estrai_testo_bvger(uuid)
+    else:
+        url   = costruisci_url_bgerli(codice)
+        testo = estrai_testo_sentenza(url)
+
     if not testo or testo.startswith("ERRORE") or len(testo) < 100:
         return jsonify({"errore": "Impossibile recuperare il testo della sentenza."}), 404
-
     sintesi = sintetizza_testo_sentenza_4_punti(testo, lang)
     return jsonify({"sintesi": sintesi})
 
